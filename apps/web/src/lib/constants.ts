@@ -3,9 +3,9 @@
  * Region bound is enforced from @pnw/contracts (PNW.bbox).
  */
 export const DEFAULT_CAMERA = {
-  longitude: -123.0,
-  latitude: 48.5,
-  height: 600_000,
+  longitude: -122.3321,
+  latitude: 47.6062,
+  height: 40_000,
 } as const;
 
 // Prefix same-origin API paths with Vite's base. Under JupyterHub the SPA

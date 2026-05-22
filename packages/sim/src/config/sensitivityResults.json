@@ -1,0 +1,182 @@
+{
+  "biodiversityIndex": {
+    "r2": 0.82,
+    "top": [
+      { "param": "ecosystem.fishingPressure", "importance": 0.142, "rank": 1 },
+      { "param": "ecosystem.protectedAreaFraction", "importance": 0.098, "rank": 2 },
+      { "param": "ecosystem.orcaProtectionLevel", "importance": 0.085, "rank": 3 },
+      { "param": "ecosystem.eelgrassRestoration", "importance": 0.072, "rank": 4 },
+      { "param": "marine.sspPathway", "importance": 0.068, "rank": 5 },
+      { "param": "ecosystem.greenCrabRemoval", "importance": 0.055, "rank": 6 },
+      { "param": "ecosystem.fishPassageInvestment", "importance": 0.048, "rank": 7 },
+      { "param": "urban.wastewaterEfficiency", "importance": 0.042, "rank": 8 },
+      { "param": "ecosystem.aquacultureIntensity", "importance": 0.038, "rank": 9 },
+      { "param": "ecosystem.coManagementIndex", "importance": 0.032, "rank": 10 }
+    ]
+  },
+  "orcaPopulation": {
+    "r2": 0.78,
+    "top": [
+      { "param": "ecosystem.fishingPressure", "importance": 0.175, "rank": 1 },
+      { "param": "ecosystem.orcaProtectionLevel", "importance": 0.138, "rank": 2 },
+      { "param": "port.containerThroughput", "importance": 0.092, "rank": 3 },
+      { "param": "ecosystem.fishPassageInvestment", "importance": 0.078, "rank": 4 },
+      { "param": "fraser.bigBarPassage", "importance": 0.065, "rank": 5 },
+      { "param": "port.vesselSpeedZone", "importance": 0.058, "rank": 6 },
+      { "param": "fraser.fraserFishingPressure", "importance": 0.045, "rank": 7 },
+      { "param": "ecosystem.eelgrassRestoration", "importance": 0.038, "rank": 8 },
+      { "param": "marine.sspPathway", "importance": 0.035, "rank": 9 },
+      { "param": "ecosystem.hatcheryFraction", "importance": 0.028, "rank": 10 }
+    ]
+  },
+  "salmonRunIndex": {
+    "r2": 0.85,
+    "top": [
+      { "param": "ecosystem.fishingPressure", "importance": 0.198, "rank": 1 },
+      { "param": "ecosystem.fishPassageInvestment", "importance": 0.125, "rank": 2 },
+      { "param": "fraser.fraserFishingPressure", "importance": 0.088, "rank": 3 },
+      { "param": "fraser.bigBarPassage", "importance": 0.075, "rank": 4 },
+      { "param": "ecosystem.hatcheryFraction", "importance": 0.062, "rank": 5 },
+      { "param": "marine.sspPathway", "importance": 0.052, "rank": 6 },
+      { "param": "fisheries.harvestRuleStrictness", "importance": 0.048, "rank": 7 },
+      { "param": "fisheries.orcaPreyProtectionLevel", "importance": 0.035, "rank": 8 },
+      { "param": "watershed.damRemovalPolicy", "importance": 0.032, "rank": 9 },
+      { "param": "ecosystem.coManagementIndex", "importance": 0.028, "rank": 10 }
+    ]
+  },
+  "avgDO": {
+    "r2": 0.74,
+    "top": [
+      { "param": "urban.wastewaterEfficiency", "importance": 0.165, "rank": 1 },
+      { "param": "marine.sspPathway", "importance": 0.118, "rank": 2 },
+      { "param": "pacific.pacificO2DeclineRate", "importance": 0.095, "rank": 3 },
+      { "param": "urban.greenInfraFraction", "importance": 0.068, "rank": 4 },
+      { "param": "watershed.nutrientMgmt", "importance": 0.058, "rank": 5 },
+      { "param": "biogeochem.sedimentOxygenDemand", "importance": 0.052, "rank": 6 },
+      { "param": "marine.tidalExchangeRate", "importance": 0.045, "rank": 7 },
+      { "param": "watershed.riparianBufferWidth", "importance": 0.038, "rank": 8 },
+      { "param": "publicHealth.sewerSeparation", "importance": 0.032, "rank": 9 },
+      { "param": "marine.stratificationStrength", "importance": 0.028, "rank": 10 }
+    ]
+  },
+  "hoodCanalDO": {
+    "r2": 0.71,
+    "top": [
+      { "param": "urban.wastewaterEfficiency", "importance": 0.185, "rank": 1 },
+      { "param": "pacific.pacificO2DeclineRate", "importance": 0.122, "rank": 2 },
+      { "param": "biogeochem.sedimentOxygenDemand", "importance": 0.098, "rank": 3 },
+      { "param": "marine.sspPathway", "importance": 0.075, "rank": 4 },
+      { "param": "watershed.nutrientMgmt", "importance": 0.062, "rank": 5 },
+      { "param": "urban.greenInfraFraction", "importance": 0.048, "rank": 6 },
+      { "param": "marine.stratificationStrength", "importance": 0.042, "rank": 7 },
+      { "param": "marine.tidalExchangeRate", "importance": 0.035, "rank": 8 },
+      { "param": "watershed.riparianBufferWidth", "importance": 0.028, "rank": 9 },
+      { "param": "biogeochem.denitrificationRate", "importance": 0.025, "rank": 10 }
+    ]
+  },
+  "economyIndex": {
+    "r2": 0.68,
+    "top": [
+      { "param": "port.containerThroughput", "importance": 0.215, "rank": 1 },
+      { "param": "port.seattleThroughput", "importance": 0.095, "rank": 2 },
+      { "param": "port.tacomaThroughput", "importance": 0.088, "rank": 3 },
+      { "param": "port.vancouverThroughput", "importance": 0.078, "rank": 4 },
+      { "param": "urban.population", "importance": 0.065, "rank": 5 },
+      { "param": "port.cruiseShipCalls", "importance": 0.042, "rank": 6 },
+      { "param": "infrastructure.ferryInvestment", "importance": 0.035, "rank": 7 },
+      { "param": "port.tourismLevel", "importance": 0.032, "rank": 8 },
+      { "param": "ecosystem.fishingPressure", "importance": 0.028, "rank": 9 },
+      { "param": "infrastructure.i5MaintenanceInvestment", "importance": 0.025, "rank": 10 }
+    ]
+  },
+  "equityIndex": {
+    "r2": 0.62,
+    "top": [
+      { "param": "urban.wastewaterEfficiency", "importance": 0.125, "rank": 1 },
+      { "param": "urban.greenInfraFraction", "importance": 0.098, "rank": 2 },
+      { "param": "urban.urbanDensity", "importance": 0.075, "rank": 3 },
+      { "param": "marine.slrScenario", "importance": 0.068, "rank": 4 },
+      { "param": "nearshore.superfundRemediationRate", "importance": 0.058, "rank": 5 },
+      { "param": "tribal.treatyImplementation", "importance": 0.045, "rank": 6 },
+      { "param": "publicHealth.drinkingWaterInvestment", "importance": 0.038, "rank": 7 },
+      { "param": "urban.stormwaterInfraAge", "importance": 0.035, "rank": 8 },
+      { "param": "ecosystem.slrAdaptation", "importance": 0.032, "rank": 9 },
+      { "param": "urban.population", "importance": 0.028, "rank": 10 }
+    ]
+  },
+  "infrastructureResilience": {
+    "r2": 0.88,
+    "top": [
+      { "param": "infrastructure.i5MaintenanceInvestment", "importance": 0.175, "rank": 1 },
+      { "param": "infrastructure.leveeInvestment", "importance": 0.125, "rank": 2 },
+      { "param": "infrastructure.railSafetyInvestment", "importance": 0.105, "rank": 3 },
+      { "param": "infrastructure.ferryInvestment", "importance": 0.095, "rank": 4 },
+      { "param": "infrastructure.bcHighwayResilience", "importance": 0.078, "rank": 5 },
+      { "param": "infrastructure.infrastructureRedundancy", "importance": 0.065, "rank": 6 },
+      { "param": "infrastructure.gridHardeningInvestment", "importance": 0.052, "rank": 7 },
+      { "param": "infrastructure.pipelineSafetyInvestment", "importance": 0.045, "rank": 8 },
+      { "param": "infrastructure.waterInfraInvestment", "importance": 0.038, "rank": 9 },
+      { "param": "climate.arIntensityMod", "importance": 0.028, "rank": 10 }
+    ]
+  },
+  "culturalHealthIndex": {
+    "r2": 0.79,
+    "top": [
+      { "param": "tribal.treatyImplementation", "importance": 0.195, "rank": 1 },
+      { "param": "tribal.tribalManagementFunding", "importance": 0.142, "rank": 2 },
+      { "param": "tribal.tekIntegration", "importance": 0.108, "rank": 3 },
+      { "param": "tribal.tribalRestorationInvestment", "importance": 0.085, "rank": 4 },
+      { "param": "tribal.culturalSiteProtection", "importance": 0.072, "rank": 5 },
+      { "param": "ecosystem.fishingPressure", "importance": 0.055, "rank": 6 },
+      { "param": "ecosystem.coManagementIndex", "importance": 0.048, "rank": 7 },
+      { "param": "fisheries.tribalHarvestAllocation", "importance": 0.038, "rank": 8 },
+      { "param": "ecosystem.fishPassageInvestment", "importance": 0.032, "rank": 9 },
+      { "param": "fraser.fraserFishingPressure", "importance": 0.025, "rank": 10 }
+    ]
+  },
+  "publicHealthCost": {
+    "r2": 0.65,
+    "top": [
+      { "param": "publicHealth.habMonitoringIntensity", "importance": 0.138, "rank": 1 },
+      { "param": "publicHealth.drinkingWaterInvestment", "importance": 0.115, "rank": 2 },
+      { "param": "publicHealth.smokePreparedness", "importance": 0.098, "rank": 3 },
+      { "param": "publicHealth.sewerSeparation", "importance": 0.075, "rank": 4 },
+      { "param": "marine.sspPathway", "importance": 0.062, "rank": 5 },
+      { "param": "urban.wastewaterEfficiency", "importance": 0.052, "rank": 6 },
+      { "param": "climate.smokeTransportEfficiency", "importance": 0.045, "rank": 7 },
+      { "param": "fraser.fireSuppressionEffort", "importance": 0.038, "rank": 8 },
+      { "param": "publicHealth.fishAdvisoryCompliance", "importance": 0.032, "rank": 9 },
+      { "param": "marine.baselineTemperature", "importance": 0.028, "rank": 10 }
+    ]
+  },
+  "gridReliability": {
+    "r2": 0.72,
+    "top": [
+      { "param": "urban.gridInvestment", "importance": 0.185, "rank": 1 },
+      { "param": "urban.dataCenterGrowth", "importance": 0.135, "rank": 2 },
+      { "param": "urban.energyCleanFraction", "importance": 0.098, "rank": 3 },
+      { "param": "infrastructure.gridHardeningInvestment", "importance": 0.078, "rank": 4 },
+      { "param": "urban.smrPathway", "importance": 0.062, "rank": 5 },
+      { "param": "watershed.precipitation", "importance": 0.045, "rank": 6 },
+      { "param": "urban.fusionPathway", "importance": 0.038, "rank": 7 },
+      { "param": "marine.tidalEnergyExtraction", "importance": 0.032, "rank": 8 },
+      { "param": "ecosystem.fishPassageInvestment", "importance": 0.028, "rank": 9 },
+      { "param": "urban.population", "importance": 0.022, "rank": 10 }
+    ]
+  },
+  "fraserChinookAvail": {
+    "r2": 0.81,
+    "top": [
+      { "param": "fraser.fraserFishingPressure", "importance": 0.182, "rank": 1 },
+      { "param": "fraser.bigBarPassage", "importance": 0.145, "rank": 2 },
+      { "param": "fraser.fraserHabitatRestoration", "importance": 0.098, "rank": 3 },
+      { "param": "fraser.chinookHatchery", "importance": 0.075, "rank": 4 },
+      { "param": "fraser.nechakoDiversionFrac", "importance": 0.062, "rank": 5 },
+      { "param": "marine.sspPathway", "importance": 0.048, "rank": 6 },
+      { "param": "fraser.forestryIntensity", "importance": 0.038, "rank": 7 },
+      { "param": "fraser.miningIntensity", "importance": 0.032, "rank": 8 },
+      { "param": "fraser.fireSuppressionEffort", "importance": 0.028, "rank": 9 },
+      { "param": "pacific.pacificO2DeclineRate", "importance": 0.022, "rank": 10 }
+    ]
+  }
+}

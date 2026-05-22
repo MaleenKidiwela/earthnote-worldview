@@ -20,6 +20,21 @@ function aisCollectorPlugin(): Plugin {
         env.VITE_AISSTREAM_API_KEY || process.env.VITE_AISSTREAM_API_KEY;
       startCollector(key);
 
+      // Under JupyterHub, requests arrive prefixed with hubProxyBase. Strip
+      // it so the existing /api/* middlewares and server.proxy entries match.
+      // Must be installed before any /api/* middleware.
+      if (hubProxyBase !== "/") {
+        const stripPrefix = hubProxyBase.replace(/\/$/, "");
+        server.middlewares.use((req, _res, next) => {
+          // Only rewrite /api/* paths. Vite's own base middleware handles
+          // app/static URLs; stripping those here would break asset serving.
+          if (req.url?.startsWith(`${stripPrefix}/api/`)) {
+            req.url = req.url.slice(stripPrefix.length);
+          }
+          next();
+        });
+      }
+
       server.middlewares.use("/api/ais/vessel", async (req, res) => {
         const mmsi = req.url?.replace(/^\//, "") || "";
         if (!mmsi) {

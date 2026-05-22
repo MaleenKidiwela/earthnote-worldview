@@ -1,0 +1,26 @@
+{
+  "name": "@pnw/sim",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./engine/*": "./src/engine/*.js",
+    "./config/*": "./src/config/*.js",
+    "./geo/*": "./src/geo/*.js"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@pnw/contracts": "workspace:*",
+    "@turf/turf": "^7.3.4"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.14",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

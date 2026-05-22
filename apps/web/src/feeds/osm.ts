@@ -27,12 +27,17 @@ function buildQuery(bbox: BBox, classes: string[]): string {
 }
 
 /** Pick highway classes by bbox span (deg). Smaller view, more detail. */
-function classesFor(bbox: BBox): string[] {
+/**
+ * Two-stage class plan. Stage 0 (motorways+trunks) returns in ~1 s; stage 1
+ * (primary) merges in shortly after. Secondary roads are intentionally
+ * excluded — they 10× the payload at city zoom and the residential noise
+ * isn't worth the wait.
+ */
+export function classStages(bbox: BBox): string[][] {
   const span = Math.max(bbox.north - bbox.south, bbox.east - bbox.west);
-  if (span > 6) return ["motorway"];
-  if (span > 2) return ["motorway", "trunk"];
-  if (span > 0.6) return ["motorway", "trunk", "primary"];
-  return ["motorway", "trunk", "primary", "secondary"];
+  if (span > 6) return [["motorway"]];
+  if (span > 2) return [["motorway", "trunk"]];
+  return [["motorway", "trunk"], ["primary"]];
 }
 
 interface OverpassWay {
@@ -45,13 +50,17 @@ interface OverpassResponse {
   elements: OverpassWay[];
 }
 
-export async function fetchRoadPolylines(bbox: BBox): Promise<RoadPolyline[]> {
-  const classes = classesFor(bbox);
+export async function fetchRoadPolylines(
+  bbox: BBox,
+  classes: string[],
+  signal?: AbortSignal,
+): Promise<RoadPolyline[]> {
   try {
     const res = await fetch(OVERPASS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: "data=" + encodeURIComponent(buildQuery(bbox, classes)),
+      signal,
     });
     if (!res.ok) {
       console.warn("Overpass error:", res.status);

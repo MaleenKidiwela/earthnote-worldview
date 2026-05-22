@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import {
   Cartesian3,
   Cartesian2,
@@ -10,6 +10,18 @@ import {
   Viewer,
 } from "cesium";
 import { sim } from "@/sim-stub";
+
+/**
+ * Two-tone health gradient. Health 0 → red (#f7768e), 1 → green (#9ece6a).
+ * Entities the engine doesn't model fall back to the dim blue base color.
+ */
+function healthColor(health: number | null): Color {
+  if (health == null) return Color.fromCssColorString("#7aa2f7");
+  const r = Math.round(255 * (1 - health) + 158 * health);
+  const g = Math.round(118 * (1 - health) + 206 * health);
+  const b = Math.round(142 * (1 - health) + 106 * health);
+  return Color.fromBytes(r, g, b, 255);
+}
 
 interface CousinOverlayProps {
   viewer: Viewer | null;
@@ -27,6 +39,13 @@ interface CousinOverlayProps {
  */
 export function CousinOverlay({ viewer, selectedEntityId }: CousinOverlayProps) {
   const entityList = useMemo(() => Array.from(sim.entities.values()), []);
+  // Subscribe to engine ticks; `result` changes identity on each tick.
+  // The clock itself is driven from GlobeViewer (with realtime feed access).
+  const result = useSyncExternalStore(
+    (l) => sim.subscribe(l),
+    () => sim.result,
+    () => sim.result,
+  );
 
   // Base layer: dim markers for every entity (mount once per viewer).
   useEffect(() => {
@@ -35,12 +54,14 @@ export function CousinOverlay({ viewer, selectedEntityId }: CousinOverlayProps) 
     for (const e of entityList) {
       const id = `cousin-${e.id}`;
       baseIds.push(id);
+      const health = sim.getValue(e.id);
+      const base = healthColor(health);
       viewer.entities.add({
         id,
         position: Cartesian3.fromDegrees(e.lonLat[0], e.lonLat[1]),
         point: {
-          pixelSize: 6,
-          color: Color.fromCssColorString("#7aa2f7").withAlpha(0.35),
+          pixelSize: health == null ? 6 : 9,
+          color: base.withAlpha(health == null ? 0.35 : 0.85),
           outlineColor: Color.BLACK,
           outlineWidth: 1,
         },
@@ -71,19 +92,19 @@ export function CousinOverlay({ viewer, selectedEntityId }: CousinOverlayProps) 
       for (const id of tempIds) viewer.entities.removeById(id);
     }
 
-    // Reset highlight on every base entity (alpha back to dim).
+    // Reset every base entity to its current health-driven color. Engine
+    // ticks change those colors; this also clears the prior selection
+    // highlight.
     for (const e of entityList) {
       const ent = viewer.entities.getById(`cousin-${e.id}`);
-      if (!ent) continue;
-      if (ent.point) {
-        ent.point.color = new ConstantProperty(
-          Color.fromCssColorString("#7aa2f7").withAlpha(0.35),
-        );
-        ent.point.pixelSize = new ConstantProperty(6);
-      }
-      if (ent.label) {
-        ent.label.show = new ConstantProperty(false);
-      }
+      if (!ent || !ent.point) continue;
+      const health = sim.getValue(e.id);
+      const base = healthColor(health);
+      ent.point.color = new ConstantProperty(
+        base.withAlpha(health == null ? 0.35 : 0.85),
+      );
+      ent.point.pixelSize = new ConstantProperty(health == null ? 6 : 9);
+      if (ent.label) ent.label.show = new ConstantProperty(false);
     }
 
     if (!selectedEntityId) {
@@ -145,7 +166,7 @@ export function CousinOverlay({ viewer, selectedEntityId }: CousinOverlayProps) 
     }
 
     return () => clearTemp();
-  }, [viewer, selectedEntityId, entityList]);
+  }, [viewer, selectedEntityId, entityList, result]);
 
   return null;
 }

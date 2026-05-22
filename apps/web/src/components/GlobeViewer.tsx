@@ -13,6 +13,8 @@ import { configureCesium, loadGoogleTileset, createDarkBasemap } from "@/lib/ces
 import { DEFAULT_CAMERA } from "@/lib/constants";
 import { useEarthquakeData } from "@/hooks/useEarthquakeData";
 import { useAISData } from "@/hooks/useAISData";
+import { useSimClock } from "@/hooks/useSimClock";
+import type { Observation as SimObservation } from "@pnw/sim";
 import { useFireData } from "@/hooks/useFireData";
 import { useWeatherData } from "@/hooks/useWeatherData";
 import { useGnssData } from "@/hooks/useGnssData";
@@ -92,6 +94,27 @@ export function GlobeViewer() {
   const { alerts, dismiss: dismissAlert } = useAlerts({
     earthquakes: quakeData.earthquakes,
     weatherAlerts: weatherData.alerts,
+  });
+
+  // Sim clock: ticks the Cousin engine every 30s (one simulated month).
+  // Realtime feeds are converted to engine Observations here so the engine's
+  // Newtonian-relaxation assimilation nudges its state toward what we see.
+  // Currently wired: AIS vessel count → underwater noise proxy.
+  // Solid-earth signals (quakes, GNSS) are intentionally NOT fed back — that
+  // would violate the two-contract prediction principle (observe-only).
+  useSimClock({
+    intervalMs: 30_000,
+    getObservations: () => {
+      const obs: SimObservation[] = [];
+      // Vessel-density → noise: more underway vessels = more broadband noise.
+      // Map count linearly between 100dB (quiet) and 145dB (saturated traffic).
+      const movingVessels = aisData.vessels.filter((v) => v.sog > 2).length;
+      if (movingVessels > 0) {
+        const dB = Math.min(145, 100 + movingVessels * 0.3);
+        obs.push({ variable: "noiseLevel", value: dB, basin: "mainBasin" });
+      }
+      return obs;
+    },
   });
 
   const [selectedQuake, setSelectedQuake] = useState<Earthquake | null>(null);
@@ -326,7 +349,12 @@ export function GlobeViewer() {
         <Crosshair />
         <DataReadout viewer={viewer} filterMode={filterMode} />
 
-        <LayerPanel layers={layers} onToggle={toggleLayer} />
+        <LayerPanel
+          layers={layers}
+          onToggle={toggleLayer}
+          onRefreshRoads={roadData.refresh}
+          roadsLoading={roadData.loading}
+        />
         <FilterPanel mode={filterMode} onChange={setFilterMode} />
 
         <QuakeDetailPanel
