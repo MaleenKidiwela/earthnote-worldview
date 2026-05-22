@@ -25,6 +25,7 @@ import {
   prepareObservations,
 } from "./engine/dataAssimilation.js";
 import { DEF } from "./config/defaults.js";
+import { SCEN } from "./config/scenarios.js";
 
 export { ENTITIES, EDGES, SCENARIOS } from "./taxonomy.js";
 export type { EntityWithGeo, ScenarioSpec } from "./taxonomy.js";
@@ -32,6 +33,10 @@ export type { EntityWithGeo, ScenarioSpec } from "./taxonomy.js";
 // BasinHealthLayer that paints engine state directly onto the map.
 export { SUB_BASIN_WATER_POLYGONS } from "./geo/subBasinPolygonsGenerated.js";
 export { SUB_BASINS, PARENT_BASINS, BASIN_NAMES } from "./engine/basins.js";
+// Engine scenarios: full parameter-set "worlds" (climate stress, green
+// transition, hood canal collapse, blob returns, perfect storm, etc).
+// Each is a complete allParams override; some have autoTrigger shocks.
+export { SCEN, M9_SCENARIOS } from "./config/scenarios.js";
 export {
   runOrchestrator,
   warmupState,
@@ -93,6 +98,17 @@ export interface SimModel {
    * consumes them.
    */
   queueShock(shock: Record<string, number>): void;
+  /** Re-warmup the engine and clear ticks/shocks. Drops to t=0. */
+  reset(): void;
+  /**
+   * Switch the persistent parameter set to a named scenario from SCEN
+   * (e.g. "green", "collapse", "hood_canal_collapse", "blob_returns").
+   * Re-warms up the engine with the new params and queues any
+   * autoTrigger shocks. Pass "baseline" to return to defaults.
+   */
+  setScenario(scenarioId: string): void;
+  /** Current scenario id (defaults to "baseline"). */
+  readonly scenarioId: string;
 }
 
 export interface CreateSimOptions {
@@ -124,6 +140,9 @@ class SimStore implements SimModel {
   private _yf = 0; // years forward, advances per tick
   private _ticks = 0;
   private _pendingShocks: Record<string, number> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _params: any = DEF;
+  private _scenarioId = "baseline";
 
   constructor(opts: CreateSimOptions = {}) {
     this._monthly = opts.monthly ?? true;
@@ -202,7 +221,7 @@ class SimStore implements SimModel {
       }
       const shocks = this._pendingShocks;
       this._pendingShocks = {};
-      const result = runOrchestrator(DEF, shocks, this._yf, this._state, dt, this._yf);
+      const result = runOrchestrator(this._params, shocks, this._yf, this._state, dt, this._yf);
       this._state = result._state;
       this._result = result;
       this._yf += dt / 4; // quarters/tick → years
@@ -222,6 +241,49 @@ class SimStore implements SimModel {
 
   queueShock(shock: Record<string, number>): void {
     Object.assign(this._pendingShocks, shock);
+  }
+
+  reset(): void {
+    this._pendingShocks = {};
+    this._yf = 0;
+    this._ticks = 0;
+    this._params = DEF;
+    this._scenarioId = "baseline";
+    try {
+      this._state = boot(this._monthly);
+      this.tick();
+    } catch (err) {
+      console.warn("[sim] reset failed:", err);
+    }
+  }
+
+  get scenarioId() {
+    return this._scenarioId;
+  }
+
+  setScenario(id: string): void {
+    const scen = SCEN[id];
+    if (!scen) {
+      console.warn(`[sim] unknown scenario: ${id}`);
+      return;
+    }
+    this._params = scen.p ?? DEF;
+    this._scenarioId = id;
+    this._pendingShocks = {};
+    this._yf = 0;
+    this._ticks = 0;
+    if (scen.autoTrigger) {
+      for (const [k, v] of Object.entries(scen.autoTrigger)) {
+        this._pendingShocks[k] = typeof v === "number" ? v : v ? 1 : 0;
+      }
+    }
+    try {
+      // Warmup with new params so steady-state matches the scenario.
+      this._state = warmupState(this._params, this._monthly);
+      this.tick();
+    } catch (err) {
+      console.warn("[sim] setScenario failed:", err);
+    }
   }
 }
 

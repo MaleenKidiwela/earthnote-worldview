@@ -84,6 +84,13 @@ export function TimeControlPanel({
       >
         +1mo
       </button>
+      <button
+        onClick={() => sim.reset()}
+        title="Reset engine to t=0 (clear all queued shocks, re-warmup)"
+        style={{ ...btnStyle(false), color: "#f7768e", borderColor: "#7c2d3a" }}
+      >
+        ⟲ reset
+      </button>
     </div>
   );
 }
