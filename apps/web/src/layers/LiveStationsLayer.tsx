@@ -27,7 +27,7 @@ interface Props {
  */
 export function LiveStationsLayer({ viewer, tick }: Props) {
   // Force re-render when the user moves the discharge-scale slider.
-  const [, setScaleKey] = useState(0);
+  const [scaleKey, setScaleKey] = useState(0);
   useEffect(() => subscribeScale(() => setScaleKey((k) => k + 1)), []);
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export function LiveStationsLayer({ viewer, tick }: Props) {
       if (viewer.isDestroyed()) return;
       for (const id of ids) viewer.entities.removeById(id);
     };
-  }, [viewer, tick]);
+  }, [viewer, tick, scaleKey]);
 
   return null;
 }
