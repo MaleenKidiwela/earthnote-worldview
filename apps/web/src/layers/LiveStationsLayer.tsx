@@ -1,5 +1,13 @@
 import { useEffect } from "react";
-import { Cartesian3, Cartesian2, Color, LabelStyle, VerticalOrigin, type Viewer } from "cesium";
+import {
+  Cartesian3,
+  Cartesian2,
+  Color,
+  LabelStyle,
+  VerticalOrigin,
+  DistanceDisplayCondition,
+  type Viewer,
+} from "cesium";
 import { NOAA_STATIONS, NOAA_LATEST } from "@/feeds/noaa-tides";
 import { USGS_SITES, USGS_LATEST } from "@/feeds/usgs-streamflow";
 
@@ -53,32 +61,35 @@ export function LiveStationsLayer({ viewer, tick }: Props) {
       });
     }
 
+    // Hundreds of streamflow gauges across the Cascades — draw them as
+    // small cyan dots, only show the label when zoomed in (< 200 km).
     for (const s of USGS_SITES) {
       const id = `usgs-${s.id}`;
       ids.push(id);
       const q = USGS_LATEST.get(s.id);
       const label =
-        q != null ? `${s.name}\n${q.toFixed(0)} m³/s` : `${s.name}\n…`;
+        q != null ? `${shortName(s.name)}\n${q.toFixed(0)} m³/s` : shortName(s.name);
       viewer.entities.add({
         id,
         position: Cartesian3.fromDegrees(s.lon, s.lat, 100),
         point: {
-          pixelSize: 9,
+          pixelSize: dischargeSize(q),
           color: dischargeColor(q),
           outlineColor: Color.BLACK,
-          outlineWidth: 1.5,
+          outlineWidth: 1,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         label: {
           text: label,
-          font: "10px JetBrains Mono",
+          font: "9px JetBrains Mono",
           fillColor: Color.fromCssColorString("#9ad1ff"),
           outlineColor: Color.BLACK,
           outlineWidth: 2,
           style: LabelStyle.FILL_AND_OUTLINE,
           verticalOrigin: VerticalOrigin.BOTTOM,
-          pixelOffset: new Cartesian2(0, -14),
+          pixelOffset: new Cartesian2(0, -10),
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          distanceDisplayCondition: new DistanceDisplayCondition(0, 2e5),
         },
       });
     }
@@ -104,5 +115,27 @@ function sstColor(v: number | undefined): Color {
 
 function dischargeColor(v: number | undefined): Color {
   if (v == null) return Color.GREY;
-  return Color.fromCssColorString("#3fa9ff");
+  // Map small streams (<5 m³/s) to pale, big rivers (>500 m³/s) to bright.
+  const t = Math.max(0, Math.min(1, Math.log10(Math.max(0.1, v)) / 3));
+  return Color.fromBytes(
+    Math.round(63 + 100 * t),
+    Math.round(169 + 50 * t),
+    255,
+    255,
+  );
+}
+
+function dischargeSize(v: number | undefined): number {
+  if (v == null) return 4;
+  // 1 m³/s → 4 px; 100 m³/s → 7 px; 1000 → 10 px.
+  return Math.max(4, Math.min(10, 4 + Math.log10(Math.max(1, v)) * 2));
+}
+
+function shortName(name: string): string {
+  // USGS site names are long, e.g. "SAUK RIVER NEAR SAUK, WA". Trim.
+  return name
+    .replace(/^(NF|SF|EF|WF)\s+/i, "")
+    .replace(/\b(NEAR|AT|BL|ABOVE|BELOW)\b.*$/i, "")
+    .trim()
+    .slice(0, 24);
 }
