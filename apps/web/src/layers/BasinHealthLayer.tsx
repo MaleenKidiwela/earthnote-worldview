@@ -3,6 +3,7 @@ import {
   Cartesian3,
   Color,
   PolygonHierarchy,
+  ClassificationType,
   type Viewer,
 } from "cesium";
 import { SUB_BASINS, getClippedBasins } from "@pnw/sim";
@@ -53,7 +54,6 @@ export function BasinHealthLayer({ viewer, variable, tick }: BasinHealthLayerPro
       const parent = parentId ? basins[parentId] : null;
       const value = readVariable(variable, parent, marine);
       const health = normalize(variable, value);
-      const extrudedHeight = health == null ? 0 : 200 + (1 - health) * 6000;
       const color = healthColor(health);
       pieces.forEach((piece, idx) => {
         const [exterior, ...holes] = piece.rings;
@@ -67,11 +67,12 @@ export function BasinHealthLayer({ viewer, variable, tick }: BasinHealthLayerPro
           name: SUB_BASINS[subId]?.name ?? subId,
           polygon: {
             hierarchy: new PolygonHierarchy(outer, innerHoles),
-            material: color.withAlpha(0.7),
-            outline: true,
-            outlineColor: color.withAlpha(0.9),
-            extrudedHeight,
-            height: 0,
+            material: color.withAlpha(0.55),
+            outline: false,
+            // Flat 2D fill draped on the globe surface (no extrusion).
+            // ClassificationType.TERRAIN paints the polygon onto whatever's
+            // below, so it conforms to the basemap instead of floating.
+            classificationType: ClassificationType.TERRAIN,
           },
         });
       });

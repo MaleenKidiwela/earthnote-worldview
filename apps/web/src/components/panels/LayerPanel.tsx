@@ -25,6 +25,8 @@ interface LayerPanelProps {
   onToggle: (layer: keyof LayerState) => void;
   onRefreshRoads?: () => void;
   roadsLoading?: boolean;
+  /** 0..1 progress when refreshing the static roads bundle; null = idle. */
+  roadsDownloadProgress?: number | null;
   basinVar: BasinVar;
   onBasinVarChange: (v: BasinVar) => void;
 }
@@ -34,6 +36,7 @@ export function LayerPanel({
   onToggle,
   onRefreshRoads,
   roadsLoading,
+  roadsDownloadProgress,
   basinVar,
   onBasinVarChange,
 }: LayerPanelProps) {
@@ -57,27 +60,64 @@ export function LayerPanel({
         <Toggle label="Fires" checked={layers.fires} onChange={() => onToggle("fires")} />
         <Toggle label="Weather" checked={layers.weather} onChange={() => onToggle("weather")} />
         <Toggle label="GNSS (deformation)" checked={layers.gnss} onChange={() => onToggle("gnss")} />
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Toggle label="Roads (particles)" checked={layers.roads} onChange={() => onToggle("roads")} />
-          {layers.roads && onRefreshRoads && (
-            <button
-              onClick={onRefreshRoads}
-              disabled={roadsLoading}
-              title="Refetch roads for the current viewport"
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Toggle label="Roads (particles)" checked={layers.roads} onChange={() => onToggle("roads")} />
+            {layers.roads && onRefreshRoads && (
+              <button
+                onClick={onRefreshRoads}
+                disabled={roadsLoading}
+                title="Refetch the static PNW roads bundle"
+                style={{
+                  marginLeft: "auto",
+                  background: "transparent",
+                  border: "1px solid #4a5568",
+                  color: "#cbd5e0",
+                  borderRadius: 3,
+                  padding: "1px 6px",
+                  cursor: roadsLoading ? "wait" : "pointer",
+                  fontSize: 12,
+                  lineHeight: 1.2,
+                }}
+              >
+                {roadsLoading ? "…" : "↻"}
+              </button>
+            )}
+          </div>
+          {layers.roads && roadsLoading && (
+            <div
+              title={
+                roadsDownloadProgress != null
+                  ? `downloading bundle ${Math.round(roadsDownloadProgress * 100)}%`
+                  : "downloading bundle"
+              }
               style={{
-                marginLeft: "auto",
-                background: "transparent",
-                border: "1px solid #4a5568",
-                color: "#cbd5e0",
-                borderRadius: 3,
-                padding: "1px 6px",
-                cursor: roadsLoading ? "wait" : "pointer",
-                fontSize: 12,
-                lineHeight: 1.2,
+                height: 3,
+                background: "#1a1f2e",
+                borderRadius: 2,
+                overflow: "hidden",
               }}
             >
-              {roadsLoading ? "…" : "↻"}
-            </button>
+              <div
+                style={{
+                  width:
+                    roadsDownloadProgress != null
+                      ? `${Math.round(roadsDownloadProgress * 100)}%`
+                      : "30%",
+                  height: "100%",
+                  background: "#7aa2f7",
+                  transition: "width 200ms ease",
+                  animation:
+                    roadsDownloadProgress == null ? "rdLoad 1.4s linear infinite" : undefined,
+                }}
+              />
+              <style>{`
+                @keyframes rdLoad {
+                  0% { transform: translateX(-100%); }
+                  100% { transform: translateX(280%); }
+                }
+              `}</style>
+            </div>
           )}
         </div>
         <Toggle label="Causal graph" checked={layers.cousin} onChange={() => onToggle("cousin")} />

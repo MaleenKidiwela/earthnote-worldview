@@ -2,109 +2,178 @@ import { useEffect, useRef, useState } from "react";
 import type { Viewer } from "cesium";
 import { Math as CesiumMath } from "cesium";
 import type { RoadPolyline } from "@/types/osm";
-import { fetchRoadPolylines, classStages, type BBox } from "@/feeds/osm";
+import {
+  fetchRoadBundle,
+  filterWaysToBbox,
+  waysToPolylines,
+  type RoadBundle,
+} from "@/feeds/roads-bundle";
 
 /**
- * Viewport-driven road loader with progressive class staging.
+ * Static-bundle road loader.
  *
- * Each settled viewport runs through two Overpass calls in sequence:
- *   stage 0 — motorways/trunks: small payload, ~1 s, renders immediately
- *   stage 1 — primary/secondary: heavier, merges in when ready
+ * Reads /data/pnw-roads.json once (entire PNW motorway+trunk+primary set,
+ * pre-fetched by scripts/build-roads.mjs), keeps it in memory, and filters
+ * to the current viewport bbox on every camera moveEnd. No Overpass calls
+ * at runtime.
  *
- * A new viewport change aborts in-flight stages so we don't paint stale
- * roads for a region the user already left.
+ * Bundle refresh: every 30 min, re-fetch with cache-bust and compare
+ * built_at. If a newer build is on disk we swap the in-memory bundle and
+ * re-filter. The RoadParticleLayer rebuilds its primitive collection on
+ * the new RoadPolyline[] identity — fast enough to feel seamless.
  */
-const DEBOUNCE_MS = 350;
+const DEBOUNCE_MS = 200;
 const MAX_SPAN_DEG = 12;
 const MIN_DELTA = 0.03;
+const REFRESH_INTERVAL_MS = 30 * 60_000;
+
+interface BBox {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+}
+
+export interface DownloadStatus {
+  active: boolean;
+  /** 0..1 if total is known; null when only bytes are available. */
+  progress: number | null;
+  loadedBytes: number;
+  totalBytes: number | null;
+}
 
 export function useRoadData(enabled: boolean, viewer: Viewer | null) {
   const [roads, setRoads] = useState<RoadPolyline[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [bundleStamp, setBundleStamp] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [download, setDownload] = useState<DownloadStatus>({
+    active: false,
+    progress: null,
+    loadedBytes: 0,
+    totalBytes: null,
+  });
+  const bundleRef = useRef<RoadBundle | null>(null);
   const lastBboxRef = useRef<BBox | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const seqRef = useRef(0);
-  const triggerRef = useRef<() => void>(() => {});
+  const lastFilterRef = useRef<(() => void) | null>(null);
 
+  // Bundle loader (mount + periodic refresh).
   useEffect(() => {
     if (!enabled) {
       setRoads([]);
+      bundleRef.current = null;
       lastBboxRef.current = null;
-      abortRef.current?.abort();
       return;
     }
-    if (!viewer || viewer.isDestroyed()) return;
+    let cancelled = false;
+
+    const reportProgress = (loaded: number, total: number | null) => {
+      if (cancelled) return;
+      setDownload({
+        active: true,
+        loadedBytes: loaded,
+        totalBytes: total,
+        progress: total ? Math.min(1, loaded / total) : null,
+      });
+    };
+    const clearProgress = () =>
+      setDownload({ active: false, progress: null, loadedBytes: 0, totalBytes: null });
+
+    const loadInitial = async () => {
+      const b = await fetchRoadBundle(false, reportProgress);
+      clearProgress();
+      if (cancelled || !b) return;
+      bundleRef.current = b;
+      setBundleStamp(b.built_at);
+      lastFilterRef.current?.();
+    };
+    loadInitial();
+
+    const tick = setInterval(async () => {
+      const fresh = await fetchRoadBundle(true, reportProgress);
+      clearProgress();
+      if (cancelled || !fresh) return;
+      const current = bundleRef.current;
+      if (current && fresh.built_at === current.built_at) return;
+      // Seamless swap: bundle ref updates, viewport filter re-runs against
+      // the same bbox so RoadParticleLayer gets a new roads identity. The
+      // particle layer crossfades the old collection out and the new in.
+      bundleRef.current = fresh;
+      setBundleStamp(fresh.built_at);
+      lastFilterRef.current?.();
+    }, REFRESH_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(tick);
+    };
+  }, [enabled]);
+
+  // Viewport filter (mount + camera moveEnd).
+  useEffect(() => {
+    if (!enabled || !viewer || viewer.isDestroyed()) return;
 
     let timer: ReturnType<typeof setTimeout> | null = null;
 
-    const trigger = () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(async () => {
-        const bbox = viewportBbox(viewer);
-        if (!bbox) return;
-        const span = Math.max(bbox.north - bbox.south, bbox.east - bbox.west);
-        if (span > MAX_SPAN_DEG) {
-          lastBboxRef.current = null;
-          return;
-        }
-        const last = lastBboxRef.current;
-        if (last && !bboxChanged(last, bbox, MIN_DELTA)) return;
-        lastBboxRef.current = bbox;
-
-        // Cancel any prior fetch for the previous viewport.
-        abortRef.current?.abort();
-        const ac = new AbortController();
-        abortRef.current = ac;
-        const mySeq = ++seqRef.current;
-        setLoading(true);
+    const filterNow = () => {
+      const view = viewportBbox(viewer);
+      if (!view) return;
+      const span = Math.max(view.north - view.south, view.east - view.west);
+      if (span > MAX_SPAN_DEG) return;
+      const last = lastBboxRef.current;
+      if (last && !bboxChanged(last, view, MIN_DELTA)) return;
+      lastBboxRef.current = view;
+      const b = bundleRef.current;
+      if (!b) return;
+      try {
+        const ways = filterWaysToBbox(b.ways, view);
+        setRoads(waysToPolylines(ways));
         setError(null);
-
-        // Fire all stages in parallel. Each one merges into the visible road
-        // set the instant it arrives — fast stages paint immediately, heavy
-        // stages densify in the background. Total wall-clock = slowest stage.
-        const stages = classStages(bbox);
-        let accumulated: RoadPolyline[] = [];
-        let outstanding = stages.length;
-        await new Promise<void>((resolve) => {
-          for (const classes of stages) {
-            fetchRoadPolylines(bbox, classes, ac.signal)
-              .then((data) => {
-                if (ac.signal.aborted || mySeq !== seqRef.current) return;
-                const seen = new Set(accumulated.map((r) => r.id));
-                accumulated = accumulated.concat(data.filter((r) => !seen.has(r.id)));
-                setRoads(accumulated);
-              })
-              .catch((err) => {
-                if (ac.signal.aborted) return;
-                setError(err instanceof Error ? err.message : "OSM fetch failed");
-              })
-              .finally(() => {
-                if (--outstanding === 0) resolve();
-              });
-          }
-        });
-        if (mySeq === seqRef.current) setLoading(false);
-      }, DEBOUNCE_MS);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "filter failed");
+      }
     };
 
-    triggerRef.current = () => {
-      // Force a fresh fetch ignoring the bbox-change threshold.
+    const debounced = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(filterNow, DEBOUNCE_MS);
+    };
+
+    // Expose so the bundle-refresh effect can re-trigger after swap.
+    lastFilterRef.current = () => {
       lastBboxRef.current = null;
-      trigger();
+      debounced();
     };
-    trigger();
-    const remove = viewer.camera.moveEnd.addEventListener(trigger);
+
+    debounced();
+    const remove = viewer.camera.moveEnd.addEventListener(debounced);
     return () => {
       if (timer) clearTimeout(timer);
       remove();
-      abortRef.current?.abort();
+      lastFilterRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, viewer]);
 
-  const refresh = () => triggerRef.current();
-  return { roads, count: roads.length, loading, error, refresh };
+  const refresh = async () => {
+    lastBboxRef.current = null;
+    if (!bundleRef.current) {
+      const b = await fetchRoadBundle(true);
+      if (b) {
+        bundleRef.current = b;
+        setBundleStamp(b.built_at);
+      }
+    }
+    lastFilterRef.current?.();
+  };
+
+  return {
+    roads,
+    count: roads.length,
+    loading: download.active,
+    error,
+    refresh,
+    builtAt: bundleStamp,
+    download,
+  };
 }
 
 function viewportBbox(viewer: Viewer): BBox | null {

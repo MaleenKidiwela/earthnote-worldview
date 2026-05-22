@@ -372,6 +372,7 @@ export function GlobeViewer() {
           onToggle={toggleLayer}
           onRefreshRoads={roadData.refresh}
           roadsLoading={roadData.loading}
+          roadsDownloadProgress={roadData.download.progress}
           basinVar={basinVar}
           onBasinVarChange={setBasinVar}
         />

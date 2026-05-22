@@ -54,6 +54,17 @@ function computeClipped(): Record<string, ClippedBasin[]> {
       if (u) land = u;
     }
   }
+  // Buffer the land outward by ~150m before subtracting. This keeps each
+  // basin polygon safely offshore so the simplified-coastline sloppiness
+  // never shows polygon spilling onto dry land.
+  if (land) {
+    try {
+      const buffered = turf.buffer(land, 0.15, { units: "kilometers" });
+      if (buffered) land = buffered;
+    } catch {
+      // turf.buffer is finicky on self-intersecting geometry; fall back.
+    }
+  }
 
   for (const [basinId, coords] of Object.entries(SUB_BASIN_WATER_POLYGONS)) {
     if (coords.length < 3) continue;

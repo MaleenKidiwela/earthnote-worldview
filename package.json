@@ -10,7 +10,8 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "dev": "pnpm --filter web dev"
+    "dev": "pnpm --filter web dev",
+    "roads:build": "node scripts/build-roads.mjs"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
