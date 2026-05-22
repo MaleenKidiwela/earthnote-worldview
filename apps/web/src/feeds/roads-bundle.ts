@@ -73,37 +73,50 @@ export async function fetchRoadBundle(
   }
 }
 
-/** Convert a bundle Way to the renderer's RoadPolyline (with arc lengths). */
-export function waysToPolylines(ways: Way[]): RoadPolyline[] {
-  const out: RoadPolyline[] = [];
-  for (const w of ways) {
+/**
+ * Precompute every way's arc lengths up front so per-pan filtering is a
+ * single bbox loop with zero haversine math. Returns RoadPolyline[]
+ * (the renderer-ready shape).
+ */
+export function bundleToPolylines(bundle: RoadBundle): RoadPolyline[] {
+  const out: RoadPolyline[] = new Array(bundle.ways.length);
+  for (let i = 0; i < bundle.ways.length; i++) {
+    const w = bundle.ways[i]!;
     if (w.geometry.length < 2) continue;
     const points = w.geometry.map((g) => [g[0], g[1]] as const);
     const { cumulative, totalLength } = arcLengths(points);
-    out.push({
+    out[i] = {
       id: `way-${w.id}`,
       classification: w.classification,
       points,
       cumulative,
       totalLength,
-    });
+    };
   }
-  return out;
+  return out.filter(Boolean);
 }
 
-/** Filter ways whose geometry intersects the given bbox. */
-export function filterWaysToBbox(
-  ways: Way[],
+/**
+ * Filter precomputed polylines whose geometry intersects the bbox. No
+ * per-call allocations beyond the result array; the points refs are
+ * shared with the cached polylines.
+ */
+export function filterPolylinesToBbox(
+  polys: RoadPolyline[],
   bbox: { south: number; west: number; north: number; east: number },
-): Way[] {
-  return ways.filter((w) => {
-    for (const [lon, lat] of w.geometry) {
+  cap = 4000,
+): RoadPolyline[] {
+  const out: RoadPolyline[] = [];
+  for (const p of polys) {
+    for (const [lon, lat] of p.points) {
       if (lon >= bbox.west && lon <= bbox.east && lat >= bbox.south && lat <= bbox.north) {
-        return true;
+        out.push(p);
+        break;
       }
     }
-    return false;
-  });
+    if (out.length >= cap) break;
+  }
+  return out;
 }
 
 function haversine(a: readonly [number, number], b: readonly [number, number]): number {

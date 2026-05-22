@@ -4,8 +4,8 @@ import { Math as CesiumMath } from "cesium";
 import type { RoadPolyline } from "@/types/osm";
 import {
   fetchRoadBundle,
-  filterWaysToBbox,
-  waysToPolylines,
+  bundleToPolylines,
+  filterPolylinesToBbox,
   type RoadBundle,
 } from "@/feeds/roads-bundle";
 
@@ -53,6 +53,7 @@ export function useRoadData(enabled: boolean, viewer: Viewer | null) {
     totalBytes: null,
   });
   const bundleRef = useRef<RoadBundle | null>(null);
+  const polylinesRef = useRef<RoadPolyline[]>([]);
   const lastBboxRef = useRef<BBox | null>(null);
   const lastFilterRef = useRef<(() => void) | null>(null);
 
@@ -83,6 +84,7 @@ export function useRoadData(enabled: boolean, viewer: Viewer | null) {
       clearProgress();
       if (cancelled || !b) return;
       bundleRef.current = b;
+      polylinesRef.current = bundleToPolylines(b);
       setBundleStamp(b.built_at);
       lastFilterRef.current?.();
     };
@@ -94,10 +96,10 @@ export function useRoadData(enabled: boolean, viewer: Viewer | null) {
       if (cancelled || !fresh) return;
       const current = bundleRef.current;
       if (current && fresh.built_at === current.built_at) return;
-      // Seamless swap: bundle ref updates, viewport filter re-runs against
-      // the same bbox so RoadParticleLayer gets a new roads identity. The
-      // particle layer crossfades the old collection out and the new in.
+      // Seamless swap: parse arc lengths off the main render path, then
+      // bump bundle ref and re-filter to current viewport.
       bundleRef.current = fresh;
+      polylinesRef.current = bundleToPolylines(fresh);
       setBundleStamp(fresh.built_at);
       lastFilterRef.current?.();
     }, REFRESH_INTERVAL_MS);
@@ -122,11 +124,9 @@ export function useRoadData(enabled: boolean, viewer: Viewer | null) {
       const last = lastBboxRef.current;
       if (last && !bboxChanged(last, view, MIN_DELTA)) return;
       lastBboxRef.current = view;
-      const b = bundleRef.current;
-      if (!b) return;
+      if (polylinesRef.current.length === 0) return;
       try {
-        const ways = filterWaysToBbox(b.ways, view);
-        setRoads(waysToPolylines(ways));
+        setRoads(filterPolylinesToBbox(polylinesRef.current, view));
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "filter failed");
@@ -159,6 +159,7 @@ export function useRoadData(enabled: boolean, viewer: Viewer | null) {
       const b = await fetchRoadBundle(true);
       if (b) {
         bundleRef.current = b;
+        polylinesRef.current = bundleToPolylines(b);
         setBundleStamp(b.built_at);
       }
     }
