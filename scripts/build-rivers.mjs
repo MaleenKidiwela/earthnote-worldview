@@ -22,10 +22,10 @@ const GAGE_LAYER = "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_H
 // Cascades + Salish Sea + Olympics. Wide enough to cover all the gauges
 // we already pull from USGS NWIS.
 const BBOX = { south: 45.5, west: -124.5, north: 49.5, east: -120.0 };
-// Strahler stream order floor. 4 = sizable tribs; 5 = major rivers only.
-// Salmon/sockeye-relevant rivers (Skagit, Sauk, Snoqualmie, Snohomish,
-// Cedar, Green, Puyallup, Nooksack, Stillaguamish) are all order ≥4.
-const MIN_ORDER = 4;
+// Strahler stream order floor. 4 = sizable tribs (~100k flowlines, 50MB);
+// 6 = major rivers only (Snoqualmie/Skagit/Sauk/Snohomish/Cedar/Green
+// main stems + Columbia tributaries, ~10k flowlines, ~5MB).
+const MIN_ORDER = 6;
 // Tile the bbox so each query stays under the 2000-record cap.
 const NX = 3;
 const NY = 3;
@@ -92,7 +92,9 @@ async function fetchFlowlinesTile(bbox) {
 
 async function fetchGaugesTile(bbox) {
   const params = {
-    where: "sourceagency='USGS'",
+    // Service stores agency as 'United States Geological Survey (USGS)'.
+    // LIKE matches that and any future agency-suffix variants.
+    where: "sourceagency LIKE '%USGS%'",
     geometry: `${bbox.west},${bbox.south},${bbox.east},${bbox.north}`,
     geometryType: "esriGeometryEnvelope",
     inSR: "4326",
