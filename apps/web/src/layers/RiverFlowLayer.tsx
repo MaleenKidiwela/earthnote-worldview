@@ -7,7 +7,7 @@ import {
   type Viewer,
 } from "cesium";
 import { fetchRiverBundle, type Flowline, type RiverBundle } from "@/feeds/rivers-bundle";
-import { USGS_LATEST } from "@/feeds/usgs-streamflow";
+import { USGS_LATEST, USGS_SITES } from "@/feeds/usgs-streamflow";
 
 interface Props {
   viewer: Viewer | null;
@@ -56,6 +56,16 @@ export function RiverFlowLayer({ viewer, tick }: Props) {
       for (const g of b.gauges) {
         const fl = (g.reach && byReach.get(g.reach)) || byId.get(String(g.nhdplusId));
         if (fl) gaugeToFlowline.set(g.siteNo, fl);
+      }
+      // Snap any USGS gauge that wasn't in NHDPlusGage to its nearest
+      // flowline. ~115 of 240 gauges aren't in NHDPlusGage; without this
+      // their live readings never color a river.
+      const unmapped = USGS_SITES.filter((s) => !gaugeToFlowline.has(s.id));
+      if (unmapped.length) {
+        for (const site of unmapped) {
+          const fl = nearestFlowline(site.lon, site.lat, b.flowlines);
+          if (fl) gaugeToFlowline.set(site.id, fl);
+        }
       }
       topologyRef.current = { byFrom, gaugeToFlowline };
     });
@@ -129,6 +139,29 @@ export function RiverFlowLayer({ viewer, tick }: Props) {
   }, [viewer, bundle, tick]);
 
   return null;
+}
+
+function nearestFlowline(lon: number, lat: number, flowlines: Flowline[]): Flowline | null {
+  let best: Flowline | null = null;
+  let bestD2 = Infinity;
+  // Cheap squared-degree distance — fine for tie-breaking nearest segment
+  // and faster than haversine when we're snapping hundreds of gauges.
+  for (const f of flowlines) {
+    for (const seg of f.geom) {
+      for (const [x, y] of seg) {
+        const dx = x - lon;
+        const dy = y - lat;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < bestD2) {
+          bestD2 = d2;
+          best = f;
+        }
+      }
+    }
+  }
+  // Reject if the nearest vertex is > ~10 km (0.1°) — probably a coastal
+  // gauge we shouldn't pin to a random river.
+  return bestD2 < 0.01 ? best : null;
 }
 
 function widthFor(order: number, discharge: number | null): number {
