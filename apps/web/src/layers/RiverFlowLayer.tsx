@@ -4,6 +4,7 @@ import {
   Color,
   PolylineCollection,
   Material,
+  Math as CesiumMath,
   type Viewer,
 } from "cesium";
 import { fetchRiverBundle, type Flowline, type RiverBundle } from "@/feeds/rivers-bundle";
@@ -74,9 +75,36 @@ export function RiverFlowLayer({ viewer, tick }: Props) {
     };
   }, []);
 
+  // Bump on camera moveEnd so we re-render visible flowlines only.
+  const [viewKey, setViewKey] = useState(0);
+  useEffect(() => {
+    if (!viewer || viewer.isDestroyed()) return;
+    const fn = () => setViewKey((k) => k + 1);
+    const remove = viewer.camera.moveEnd.addEventListener(fn);
+    return remove;
+  }, [viewer]);
+
   useEffect(() => {
     if (!viewer || viewer.isDestroyed() || !bundle || !topologyRef.current) return;
     void tick;
+    void viewKey;
+
+    // Viewport cull: skip flowlines whose centroid sits outside the camera
+    // rectangle. 30k flowlines drop to ~1-3k at typical zoom.
+    const rect = viewer.camera.computeViewRectangle();
+    const view = rect
+      ? {
+          south: CesiumMath.toDegrees(rect.south),
+          west: CesiumMath.toDegrees(rect.west),
+          north: CesiumMath.toDegrees(rect.north),
+          east: CesiumMath.toDegrees(rect.east),
+        }
+      : null;
+    // Pad bbox 0.05° so polylines straddling the edge still render.
+    const pad = 0.05;
+    if (view) {
+      view.south -= pad; view.north += pad; view.west -= pad; view.east += pad;
+    }
 
     // Compute discharge per flowline by walking downstream from each gauge.
     const { byFrom, gaugeToFlowline } = topologyRef.current;
@@ -113,7 +141,10 @@ export function RiverFlowLayer({ viewer, tick }: Props) {
       viewer.scene.primitives.remove(collectionRef.current);
     }
     const coll = new PolylineCollection();
+    let drawn = 0;
     for (const f of bundle.flowlines) {
+      // Quick viewport reject by any vertex inside padded rect.
+      if (view && !flowlineInBbox(f, view)) continue;
       const v = dischargePerFlow.get(f.id) ?? (f.qama ? f.qama * 0.0283168 : null);
       const color = riverColor(v);
       const w = widthFor(f.order, v);
@@ -124,7 +155,9 @@ export function RiverFlowLayer({ viewer, tick }: Props) {
           width: w,
           material: Material.fromType("Color", { color }),
         });
+        drawn++;
       }
+      if (drawn > 4000) break; // hard cap so a zoomed-out view can't tank the GPU
     }
     viewer.scene.primitives.add(coll);
     collectionRef.current = coll;
@@ -136,32 +169,50 @@ export function RiverFlowLayer({ viewer, tick }: Props) {
         collectionRef.current = null;
       }
     };
-  }, [viewer, bundle, tick]);
+  }, [viewer, bundle, tick, viewKey]);
 
   return null;
 }
 
-function nearestFlowline(lon: number, lat: number, flowlines: Flowline[]): Flowline | null {
-  let best: Flowline | null = null;
-  let bestD2 = Infinity;
-  // Cheap squared-degree distance — fine for tie-breaking nearest segment
-  // and faster than haversine when we're snapping hundreds of gauges.
-  for (const f of flowlines) {
+/** Precomputed centroid per flowline; fast nearest-flowline lookup. */
+let flowCentroids: { f: Flowline; cx: number; cy: number }[] | null = null;
+function buildCentroids(flowlines: Flowline[]) {
+  flowCentroids = flowlines.map((f) => {
+    let sx = 0, sy = 0, n = 0;
     for (const seg of f.geom) {
       for (const [x, y] of seg) {
-        const dx = x - lon;
-        const dy = y - lat;
-        const d2 = dx * dx + dy * dy;
-        if (d2 < bestD2) {
-          bestD2 = d2;
-          best = f;
-        }
+        sx += x; sy += y; n++;
       }
     }
+    return { f, cx: n ? sx / n : 0, cy: n ? sy / n : 0 };
+  });
+}
+function nearestFlowline(lon: number, lat: number, flowlines: Flowline[]): Flowline | null {
+  if (!flowCentroids) buildCentroids(flowlines);
+  let best: Flowline | null = null;
+  let bestD2 = Infinity;
+  for (const c of flowCentroids!) {
+    const dx = c.cx - lon;
+    const dy = c.cy - lat;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      best = c.f;
+    }
   }
-  // Reject if the nearest vertex is > ~10 km (0.1°) — probably a coastal
-  // gauge we shouldn't pin to a random river.
-  return bestD2 < 0.01 ? best : null;
+  return bestD2 < 0.04 ? best : null; // ~20km centroid cap
+}
+
+function flowlineInBbox(
+  f: Flowline,
+  b: { south: number; west: number; north: number; east: number },
+): boolean {
+  for (const seg of f.geom) {
+    for (const [x, y] of seg) {
+      if (x >= b.west && x <= b.east && y >= b.south && y <= b.north) return true;
+    }
+  }
+  return false;
 }
 
 function widthFor(order: number, discharge: number | null): number {
