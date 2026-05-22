@@ -32,6 +32,7 @@ export type { EntityWithGeo, ScenarioSpec } from "./taxonomy.js";
 // Sub-basin geometry + parent-basin mapping. These power the
 // BasinHealthLayer that paints engine state directly onto the map.
 export { SUB_BASIN_WATER_POLYGONS } from "./geo/subBasinPolygonsGenerated.js";
+export { getClippedBasins, type ClippedBasin, type Ring } from "./geo/clippedBasins.js";
 export { SUB_BASINS, PARENT_BASINS, BASIN_NAMES } from "./engine/basins.js";
 // Engine scenarios: full parameter-set "worlds" (climate stress, green
 // transition, hood canal collapse, blob returns, perfect storm, etc).

@@ -5,7 +5,7 @@ import {
   PolygonHierarchy,
   type Viewer,
 } from "cesium";
-import { SUB_BASIN_WATER_POLYGONS, SUB_BASINS } from "@pnw/sim";
+import { SUB_BASINS, getClippedBasins } from "@pnw/sim";
 import { sim } from "@/sim-stub";
 
 export type BasinVariable = "SST" | "DO" | "pH" | "noise" | "omega" | "wqi";
@@ -44,36 +44,47 @@ export function BasinHealthLayer({ viewer, variable, tick }: BasinHealthLayerPro
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const marine: any = (result as any)?.marine?.state ?? {};
 
-    for (const [subId, coords] of Object.entries(SUB_BASIN_WATER_POLYGONS)) {
+    // Clipped against the real coastline (mainland + Vancouver Island +
+    // smaller islands) so the basins hug the shore instead of overlapping
+    // land. Computed once and cached inside @pnw/sim.
+    const clipped = getClippedBasins();
+    for (const [subId, pieces] of Object.entries(clipped)) {
       const parentId = SUB_BASINS[subId]?.parent ?? null;
       const parent = parentId ? basins[parentId] : null;
       const value = readVariable(variable, parent, marine);
       const health = normalize(variable, value);
-      const positions = Cartesian3.fromDegreesArray(coords.flat());
-      // High-end visual: extrude the polygon proportional to health so the
-      // Salish Sea looks like a live 3D health terrain. Stressed basins
-      // (red) extrude tall; healthy basins (green) sit low. 0..1 → 0..6 km.
       const extrudedHeight = health == null ? 0 : 200 + (1 - health) * 6000;
       const color = healthColor(health);
-      viewer.entities.add({
-        id: `basin-${subId}`,
-        name: SUB_BASINS[subId]?.name ?? subId,
-        polygon: {
-          hierarchy: new PolygonHierarchy(positions),
-          material: color.withAlpha(0.7),
-          outline: true,
-          outlineColor: color.withAlpha(0.9),
-          extrudedHeight,
-          height: 0,
-        },
+      pieces.forEach((piece, idx) => {
+        const [exterior, ...holes] = piece.rings;
+        if (!exterior || exterior.length < 3) return;
+        const outer = Cartesian3.fromDegreesArray(exterior.flat());
+        const innerHoles = holes
+          .filter((h) => h.length >= 3)
+          .map((h) => new PolygonHierarchy(Cartesian3.fromDegreesArray(h.flat())));
+        viewer.entities.add({
+          id: `basin-${subId}${idx === 0 ? "" : `-${idx}`}`,
+          name: SUB_BASINS[subId]?.name ?? subId,
+          polygon: {
+            hierarchy: new PolygonHierarchy(outer, innerHoles),
+            material: color.withAlpha(0.7),
+            outline: true,
+            outlineColor: color.withAlpha(0.9),
+            extrudedHeight,
+            height: 0,
+          },
+        });
       });
     }
 
     return () => {
       if (!viewer || viewer.isDestroyed()) return;
-      for (const id of Object.keys(SUB_BASIN_WATER_POLYGONS)) {
-        viewer.entities.removeById(`basin-${id}`);
+      const ids: string[] = [];
+      for (let i = 0; i < viewer.entities.values.length; i++) {
+        const e = viewer.entities.values[i];
+        if (e?.id?.startsWith("basin-")) ids.push(e.id);
       }
+      for (const id of ids) viewer.entities.removeById(id);
     };
   }, [viewer, variable, tick]);
 
