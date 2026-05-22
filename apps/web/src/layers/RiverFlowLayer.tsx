@@ -9,6 +9,7 @@ import {
 } from "cesium";
 import { fetchRiverBundle, type Flowline, type RiverBundle } from "@/feeds/rivers-bundle";
 import { USGS_LATEST, USGS_SITES } from "@/feeds/usgs-streamflow";
+import { dischargeColor as scaledDischargeColor } from "@/lib/dischargeScale";
 
 interface Props {
   viewer: Viewer | null;
@@ -223,12 +224,8 @@ function widthFor(order: number, discharge: number | null): number {
   return base + Math.min(3, Math.log10(Math.max(1, discharge)) * 0.6);
 }
 
+// Shared blue→red gradient anchored to the live min/max across the 240
+// USGS gauges. So the scale auto-adjusts to current conditions.
 function riverColor(v: number | null): Color {
-  if (v == null) return Color.fromBytes(80, 110, 160, 130); // dim no-data
-  // 1 → pale cyan, 1000+ → vivid white-blue.
-  const t = Math.max(0, Math.min(1, Math.log10(Math.max(0.5, v)) / 3));
-  const r = Math.round(63 + 192 * t);
-  const g = Math.round(169 + 86 * t);
-  const b = 255;
-  return Color.fromBytes(r, g, b, 220);
+  return scaledDischargeColor(v);
 }

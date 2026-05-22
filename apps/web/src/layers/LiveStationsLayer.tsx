@@ -10,6 +10,7 @@ import {
 } from "cesium";
 import { NOAA_STATIONS, NOAA_LATEST } from "@/feeds/noaa-tides";
 import { USGS_SITES, USGS_LATEST } from "@/feeds/usgs-streamflow";
+import { dischargeColor as scaledDischargeColor } from "@/lib/dischargeScale";
 
 interface Props {
   viewer: Viewer | null;
@@ -113,33 +114,11 @@ function sstColor(v: number | undefined): Color {
   return Color.fromBytes(r, g, b, 255);
 }
 
+// Use the shared blue→red discharge scale (normalized to the live
+// min/max across all 240 USGS gauges) so gauge dots and river polylines
+// always agree.
 function dischargeColor(v: number | undefined): Color {
-  if (v == null) return Color.GREY;
-  // Log scale: 0.1 m³/s (tiny creek) → t=0; 1000 m³/s (Columbia tributary)
-  // → t=1. Ramp through magenta → cyan → yellow → white so neighboring
-  // gauges are visually distinguishable, not just slightly different blues.
-  const t = Math.max(0, Math.min(1, (Math.log10(Math.max(0.1, v)) + 1) / 4));
-  // Stops: 0.0 deep purple, 0.33 cyan, 0.66 yellow, 1.0 white.
-  const stops: Array<[number, [number, number, number]]> = [
-    [0.0, [60, 30, 140]],
-    [0.33, [50, 200, 230]],
-    [0.66, [255, 220, 100]],
-    [1.0, [255, 255, 255]],
-  ];
-  for (let i = 0; i < stops.length - 1; i++) {
-    const [a, ca] = stops[i]!;
-    const [b, cb] = stops[i + 1]!;
-    if (t <= b) {
-      const u = (t - a) / (b - a);
-      return Color.fromBytes(
-        Math.round(ca[0] + (cb[0] - ca[0]) * u),
-        Math.round(ca[1] + (cb[1] - ca[1]) * u),
-        Math.round(ca[2] + (cb[2] - ca[2]) * u),
-        255,
-      );
-    }
-  }
-  return Color.WHITE;
+  return scaledDischargeColor(v ?? null);
 }
 
 function dischargeSize(v: number | undefined): number {
