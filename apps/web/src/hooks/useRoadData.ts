@@ -125,6 +125,14 @@ export function useRoadData(enabled: boolean, viewer: Viewer | null) {
       if (last && !bboxChanged(last, view, MIN_DELTA)) return;
       lastBboxRef.current = view;
       if (polylinesRef.current.length === 0) return;
+      // Short-circuit if the viewport doesn't intersect the bundle's bbox:
+      // panning to Vancouver Island with a Seattle-only bundle should do
+      // zero work, not iterate 23k ways for nothing.
+      const bundle = bundleRef.current;
+      if (bundle && !bboxIntersects(view, bundle.bbox)) {
+        setRoads((prev) => (prev.length ? [] : prev));
+        return;
+      }
       try {
         setRoads(filterPolylinesToBbox(polylinesRef.current, view));
         setError(null);
@@ -186,6 +194,10 @@ function viewportBbox(viewer: Viewer): BBox | null {
     north: CesiumMath.toDegrees(rect.north),
     east: CesiumMath.toDegrees(rect.east),
   };
+}
+
+function bboxIntersects(a: BBox, b: BBox): boolean {
+  return !(a.east < b.west || a.west > b.east || a.north < b.south || a.south > b.north);
 }
 
 function bboxChanged(a: BBox, b: BBox, minDelta: number): boolean {
