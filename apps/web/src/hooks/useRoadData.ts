@@ -163,13 +163,26 @@ export function useRoadData(enabled: boolean, viewer: Viewer | null) {
 
   const refresh = async () => {
     lastBboxRef.current = null;
-    if (!bundleRef.current) {
-      const b = await fetchRoadBundle(true);
+    // Always refetch with progress reporting so the slim bar under the
+    // Roads toggle reflects the download. Previously this short-circuited
+    // when a bundle was already loaded, so the user never saw the bar.
+    const reportProgress = (loaded: number, total: number | null) => {
+      setDownload({
+        active: true,
+        loadedBytes: loaded,
+        totalBytes: total,
+        progress: total ? Math.min(1, loaded / total) : null,
+      });
+    };
+    try {
+      const b = await fetchRoadBundle(true, reportProgress);
       if (b) {
         bundleRef.current = b;
         polylinesRef.current = bundleToPolylines(b);
         setBundleStamp(b.built_at);
       }
+    } finally {
+      setDownload({ active: false, progress: null, loadedBytes: 0, totalBytes: null });
     }
     lastFilterRef.current?.();
   };
