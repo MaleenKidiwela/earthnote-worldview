@@ -81,6 +81,14 @@ export interface SimModel {
   tick(observations?: Observation[]): void;
   /** Subscribe to post-tick state changes. Returns unsubscribe. */
   subscribe(listener: () => void): () => void;
+  /**
+   * Queue a shock to apply on the NEXT tick. Examples:
+   *   sim.queueShock({ cascadia_m9: 1 })
+   *   sim.queueShock({ oilSpill: 0.5 })
+   * Shocks merge with any already queued; cleared after the tick that
+   * consumes them.
+   */
+  queueShock(shock: Record<string, number>): void;
 }
 
 export interface CreateSimOptions {
@@ -111,6 +119,7 @@ class SimStore implements SimModel {
   private _monthly: boolean;
   private _yf = 0; // years forward, advances per tick
   private _ticks = 0;
+  private _pendingShocks: Record<string, number> = {};
 
   constructor(opts: CreateSimOptions = {}) {
     this._monthly = opts.monthly ?? true;
@@ -181,7 +190,9 @@ class SimStore implements SimModel {
         const prepped = prepareObservations(observations);
         assimilateObservations(prepped, this._state, dt);
       }
-      const result = runOrchestrator(DEF, {}, this._yf, this._state, dt, this._yf);
+      const shocks = this._pendingShocks;
+      this._pendingShocks = {};
+      const result = runOrchestrator(DEF, shocks, this._yf, this._state, dt, this._yf);
       this._state = result._state;
       this._result = result;
       this._yf += dt / 4; // quarters/tick → years
@@ -197,6 +208,10 @@ class SimStore implements SimModel {
     return () => {
       this._listeners.delete(listener);
     };
+  }
+
+  queueShock(shock: Record<string, number>): void {
+    Object.assign(this._pendingShocks, shock);
   }
 }
 

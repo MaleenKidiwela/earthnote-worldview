@@ -40,7 +40,8 @@ import { LayerPanel } from "@/components/panels/LayerPanel";
 import type { LayerState } from "@/components/panels/LayerPanel";
 import { FilterPanel } from "@/components/panels/FilterPanel";
 import { CousinPanel } from "@/components/panels/CousinPanel";
-import { CousinDrawer } from "@/components/panels/CousinDrawer";
+import { ScenariosPanel } from "@/components/panels/ScenariosPanel";
+import { BasinDetailPanel } from "@/components/panels/BasinDetailPanel";
 import { QuakeDetailPanel } from "@/components/panels/QuakeDetailPanel";
 import { ShipDetailPanel } from "@/components/panels/ShipDetailPanel";
 import { FireDetailPanel } from "@/components/panels/FireDetailPanel";
@@ -88,6 +89,7 @@ export function GlobeViewer() {
     basins: false,
   });
   const [basinVar, setBasinVar] = useState<BasinVar>("SST");
+  const [selectedBasin, setSelectedBasin] = useState<string | null>(null);
 
   const { mode: filterMode, setMode: setFilterMode } = useFilterMode();
 
@@ -304,6 +306,8 @@ export function GlobeViewer() {
             const cId = id.replace("cousin-", "");
             setSelectedEntityId(cId);
             bus.emit({ type: "selection.set", entityId: cId });
+          } else if (id.startsWith("basin-")) {
+            setSelectedBasin(id.replace("basin-", ""));
           }
         }
       },
@@ -369,7 +373,8 @@ export function GlobeViewer() {
         />
         <FilterPanel mode={filterMode} onChange={setFilterMode} />
         {layers.cousin && <CousinPanel />}
-        <CousinDrawer />
+        <ScenariosPanel />
+        <BasinDetailPanel basinId={selectedBasin} onClose={() => setSelectedBasin(null)} />
 
         <QuakeDetailPanel
           earthquake={selectedQuake}

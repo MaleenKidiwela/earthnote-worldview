@@ -50,13 +50,20 @@ export function BasinHealthLayer({ viewer, variable, tick }: BasinHealthLayerPro
       const value = readVariable(variable, parent, marine);
       const health = normalize(variable, value);
       const positions = Cartesian3.fromDegreesArray(coords.flat());
+      // High-end visual: extrude the polygon proportional to health so the
+      // Salish Sea looks like a live 3D health terrain. Stressed basins
+      // (red) extrude tall; healthy basins (green) sit low. 0..1 → 0..6 km.
+      const extrudedHeight = health == null ? 0 : 200 + (1 - health) * 6000;
+      const color = healthColor(health);
       viewer.entities.add({
         id: `basin-${subId}`,
         name: SUB_BASINS[subId]?.name ?? subId,
         polygon: {
           hierarchy: new PolygonHierarchy(positions),
-          material: healthColor(health).withAlpha(0.55),
-          outline: false,
+          material: color.withAlpha(0.7),
+          outline: true,
+          outlineColor: color.withAlpha(0.9),
+          extrudedHeight,
           height: 0,
         },
       });
