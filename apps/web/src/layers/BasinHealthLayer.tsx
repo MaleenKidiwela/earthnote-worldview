@@ -3,7 +3,6 @@ import {
   Cartesian3,
   Color,
   PolygonHierarchy,
-  ClassificationType,
   type Viewer,
 } from "cesium";
 import { SUB_BASINS, getClippedBasins } from "@pnw/sim";
@@ -69,10 +68,10 @@ export function BasinHealthLayer({ viewer, variable, tick }: BasinHealthLayerPro
             hierarchy: new PolygonHierarchy(outer, innerHoles),
             material: color.withAlpha(0.55),
             outline: false,
-            // Flat 2D fill draped on the globe surface (no extrusion).
-            // ClassificationType.TERRAIN paints the polygon onto whatever's
-            // below, so it conforms to the basemap instead of floating.
-            classificationType: ClassificationType.TERRAIN,
+            // Flat 2D fill at ground level. ClassificationType.TERRAIN
+            // crashed the scene when terrain isn't loaded; plain height:0
+            // is robust and visually identical for our flat dark map.
+            height: 0,
           },
         });
       });
