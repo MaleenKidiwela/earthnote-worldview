@@ -2,6 +2,8 @@ import {
   Ion,
   Cartesian3,
   Math as CesiumMath,
+  UrlTemplateImageryProvider,
+  Credit,
   createGooglePhotorealistic3DTileset,
 } from "cesium";
 
@@ -30,6 +32,19 @@ export async function loadGoogleTileset() {
     }
   }
   return null;
+}
+
+/**
+ * Dark, low-contrast road basemap. CartoDB Dark Matter — free, no key, light
+ * roads on near-black background. Reads well with bright overlay layers.
+ */
+export function createDarkBasemap(): UrlTemplateImageryProvider {
+  return new UrlTemplateImageryProvider({
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    subdomains: ["a", "b", "c", "d"],
+    maximumLevel: 19,
+    credit: new Credit("© OpenStreetMap contributors © CARTO", false),
+  });
 }
 
 export function cameraDestination(

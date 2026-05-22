@@ -5,11 +5,15 @@
  * Used by both: Vite dev server plugin + Express production proxy.
  */
 
+// AISStream's TLS cert expired on 2026-05-20. Node's native WebSocket has
+// no TLS options, so we use the `ws` package and disable cert verification
+// for this single host. Removing this once they renew is a one-line revert.
+import { WebSocket as WsWebSocket } from "ws";
 const WS_URL = "wss://stream.aisstream.io/v0/stream";
 const DIGITRAFFIC_URL = "https://meri.digitraffic.fi/api/ais/v1/locations";
 const DIGITRAFFIC_VESSELS_URL = "https://meri.digitraffic.fi/api/ais/v1/vessels";
 const STALE_MS = 10 * 60_000; // Remove vessels not updated in 10 min
-const MAX_SHIPS = 500;
+const MAX_SHIPS = 2000;
 
 interface TrackedVessel {
   mmsi: number;
@@ -37,9 +41,12 @@ let lastNameFetch = 0;
 function connect(apiKey: string) {
   if (ws || !apiKey) return;
 
+  console.log(`[AIS] connect() → ${WS_URL} (key ${apiKey.slice(0, 6)}…)`);
   try {
-    ws = new WebSocket(WS_URL);
-  } catch {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ws = new WsWebSocket(WS_URL, { rejectUnauthorized: false }) as any;
+  } catch (err) {
+    console.log("[AIS] WebSocket ctor threw:", err);
     scheduleReconnect(apiKey);
     return;
   }
@@ -56,10 +63,13 @@ function connect(apiKey: string) {
     clearTimeout(timeout);
     wsConnected = true;
     console.log("[AIS] WebSocket connected to AISStream — subscribing to global feed");
+    // PNW-only subscription. The free-tier buffer is small, so a global
+    // subscription wastes 95% of capacity on vessels we never render.
+    // Matches packages/contracts PNW.bbox.
     ws!.send(
       JSON.stringify({
         APIKey: apiKey,
-        BoundingBoxes: [[[-90, -180], [90, 180]]],
+        BoundingBoxes: [[[42, -130], [55, -115]]],
         FilterMessageTypes: ["PositionReport", "ShipStaticData"],
       }),
     );
@@ -73,14 +83,17 @@ function connect(apiKey: string) {
     }
   };
 
-  ws.onclose = () => {
+  ws.onclose = (ev) => {
+    const e = ev as { code?: number; reason?: string };
+    console.log(`[AIS] ws.onclose code=${e.code} reason=${e.reason || "(none)"}`);
     clearTimeout(timeout);
     ws = null;
     wsConnected = false;
     scheduleReconnect(apiKey);
   };
 
-  ws.onerror = () => {
+  ws.onerror = (ev) => {
+    console.log("[AIS] ws.onerror:", (ev as { message?: string }).message ?? ev);
     clearTimeout(timeout);
     // Don't call ws.close() here — it can trigger another error event
     // causing infinite recursion on Node 22's native WebSocket.

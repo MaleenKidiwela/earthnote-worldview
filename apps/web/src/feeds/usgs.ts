@@ -9,7 +9,7 @@ import { clipFeatures, USGS_PNW_PARAMS } from "@/lib/region";
  * /api/quakes-fdsn so the upstream query is bbox-scoped and we don't pay to
  * download the global catalog.
  */
-const FDSN_URL = `/api/quakes-fdsn?${USGS_PNW_PARAMS}`;
+const FDSN_URL = `${import.meta.env.BASE_URL}api/quakes-fdsn?${USGS_PNW_PARAMS}`;
 
 export async function fetchEarthquakes(): Promise<Earthquake[]> {
   try {

@@ -8,19 +8,26 @@ export const DEFAULT_CAMERA = {
   height: 600_000,
 } as const;
 
+// Prefix same-origin API paths with Vite's base. Under JupyterHub the SPA
+// is served at /user/<x>/proxy/absolute/5173/, so a bare "/api/ais" would
+// resolve to the hub root and 404. BASE_URL ends with "/" so we strip the
+// leading slash from the path.
+const B = import.meta.env.BASE_URL;
+const p = (path: string) => `${B}${path.replace(/^\//, "")}`;
+
 /** Proxy API paths (Vite proxy in dev, Express proxy in prod) */
 export const API = {
-  FLIGHTS: "/api/flights",
+  FLIGHTS: p("/api/flights"),
   OPENSKY_STATES: "https://opensky-network.org/api/states/all",
   CELESTRAK_GP: "https://celestrak.org/NORAD/elements/gp.php",
-  EARTHQUAKES: "/api/quakes",
-  AIS: "/api/ais",
-  FIRES: "/api/fires",
-  WEATHER: "/api/weather",
+  EARTHQUAKES: p("/api/quakes"),
+  AIS: p("/api/ais"),
+  FIRES: p("/api/fires"),
+  WEATHER: p("/api/weather"),
   // Methods ingest: external pipelines (dv/v, HVSR, RF) POST here.
-  METHODS_SAMPLE: "/api/methods/sample",
-  METHODS_GEOPRODUCT: "/api/methods/geoproduct",
-  METHODS_EVENT: "/api/methods/event",
+  METHODS_SAMPLE: p("/api/methods/sample"),
+  METHODS_GEOPRODUCT: p("/api/methods/geoproduct"),
+  METHODS_EVENT: p("/api/methods/event"),
 } as const;
 
 /** Refresh intervals (ms) */

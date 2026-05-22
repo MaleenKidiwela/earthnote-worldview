@@ -9,7 +9,7 @@ import {
   Rectangle,
 } from "cesium";
 import { createEventBus, PNW } from "@pnw/contracts";
-import { configureCesium, loadGoogleTileset } from "@/lib/cesium-config";
+import { configureCesium, loadGoogleTileset, createDarkBasemap } from "@/lib/cesium-config";
 import { DEFAULT_CAMERA } from "@/lib/constants";
 import { useEarthquakeData } from "@/hooks/useEarthquakeData";
 import { useAISData } from "@/hooks/useAISData";
@@ -71,12 +71,13 @@ export function GlobeViewer() {
   const [layers, setLayers] = useState<LayerState>({
     grid: false,
     earthquakes: true,
-    ships: true,
+    ships: false,
     fires: false,
     weather: true,
     gnss: true,
     roads: false,
     cousin: true,
+    photoreal: false,
   });
 
   const { mode: filterMode, setMode: setFilterMode } = useFilterMode();
@@ -86,7 +87,7 @@ export function GlobeViewer() {
   const fireData = useFireData(true);
   const weatherData = useWeatherData(true);
   const gnssData = useGnssData(true);
-  const roadData = useRoadData(layers.roads);
+  const roadData = useRoadData(layers.roads, viewer);
 
   const { alerts, dismiss: dismissAlert } = useAlerts({
     earthquakes: quakeData.earthquakes,
@@ -140,11 +141,15 @@ export function GlobeViewer() {
     // Cap how far the user can zoom out so Google 3D Tiles only stream PNW.
     v.scene.screenSpaceCameraController.maximumZoomDistance = MAX_ZOOM_OUT_METERS;
 
-    loadGoogleTileset().then((tileset) => {
-      if (tileset && !v.isDestroyed()) {
-        v.scene.primitives.add(tileset);
-      }
-    });
+    // Dark CartoDB road basemap as the default visual. Photorealistic 3D is
+    // an opt-in toggle (handled by the photoreal effect below).
+    v.imageryLayers.removeAll();
+    const baseLayer = v.imageryLayers.addImageryProvider(createDarkBasemap());
+    // CartoDB Dark Matter ships near-black. Lift it so roads/coastlines read
+    // without losing the dark aesthetic.
+    baseLayer.brightness = 1.8;
+    baseLayer.contrast = 1.2;
+    baseLayer.gamma = 0.9;
 
     v.scene.globe.depthTestAgainstTerrain = false;
 
@@ -156,6 +161,30 @@ export function GlobeViewer() {
       viewerRef.current = null;
     };
   }, []);
+
+  // Photorealistic 3D tileset toggle. Lazy-loads on first enable, then
+  // shows/hides via primitive.show on subsequent toggles so we don't re-fetch.
+  const tilesetRef = useRef<Awaited<ReturnType<typeof loadGoogleTileset>>>(null);
+  useEffect(() => {
+    if (!viewer || viewer.isDestroyed()) return;
+    if (!layers.photoreal) {
+      if (tilesetRef.current) tilesetRef.current.show = false;
+      return;
+    }
+    if (tilesetRef.current) {
+      tilesetRef.current.show = true;
+      return;
+    }
+    let cancelled = false;
+    loadGoogleTileset().then((tileset) => {
+      if (cancelled || !tileset || viewer.isDestroyed()) return;
+      viewer.scene.primitives.add(tileset);
+      tilesetRef.current = tileset;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewer, layers.photoreal]);
 
   // Clamp the camera back inside the PNW bbox when it wanders.
   useEffect(() => {

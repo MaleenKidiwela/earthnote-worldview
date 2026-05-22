@@ -14,8 +14,11 @@ function aisCollectorPlugin(): Plugin {
   return {
     name: "ais-collector",
     configureServer(server) {
+      // loadEnv reads .env* files; fall back to shell-exported vars too.
       const env = loadEnv("development", process.cwd(), "VITE_");
-      startCollector(env.VITE_AISSTREAM_API_KEY);
+      const key =
+        env.VITE_AISSTREAM_API_KEY || process.env.VITE_AISSTREAM_API_KEY;
+      startCollector(key);
 
       server.middlewares.use("/api/ais/vessel", async (req, res) => {
         const mmsi = req.url?.replace(/^\//, "") || "";
@@ -62,7 +65,19 @@ function aisCollectorPlugin(): Plugin {
   };
 }
 
+// Under JupyterHub, the SPA is reached via /user/<name>/proxy/5173/.
+// Vite's default base "/" makes asset URLs resolve to the hub root, not the
+// proxy prefix, so the page 200s but every /src/* and /@vite/* 404s. Derive
+// the base from JUPYTERHUB_SERVICE_URL when present.
+const hubProxyBase = (() => {
+  const url = process.env.JUPYTERHUB_SERVICE_URL;
+  if (!url) return "/";
+  const path = new URL(url).pathname;
+  return `${path}proxy/absolute/5173/`;
+})();
+
 export default defineConfig({
+  base: hubProxyBase,
   plugins: [react(), cesium(), tailwindcss(), aisCollectorPlugin()],
   resolve: {
     alias: {
@@ -77,7 +92,7 @@ export default defineConfig({
     allowedHosts: true,
     // Behind jupyter-server-proxy, HMR over WSS via the hub's TLS port.
     hmr: process.env.JUPYTERHUB_SERVICE_URL
-      ? { clientPort: 443, protocol: "wss" }
+      ? { clientPort: 443, protocol: "wss", path: `${hubProxyBase}` }
       : true,
     proxy: {
       // PNW earthquakes via USGS FDSN events API. The PNW bbox query is

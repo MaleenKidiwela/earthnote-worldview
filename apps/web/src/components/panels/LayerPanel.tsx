@@ -12,6 +12,8 @@ export interface LayerState {
   roads: boolean;
   /** Cousin causal graph overlay (entities + edge traces on selection) */
   cousin: boolean;
+  /** Google Photorealistic 3D Tiles. Off → flat dark road basemap. */
+  photoreal: boolean;
 }
 
 interface LayerPanelProps {
@@ -32,6 +34,7 @@ export function LayerPanel({ layers, onToggle }: LayerPanelProps) {
         <Toggle label="Roads (particles)" checked={layers.roads} onChange={() => onToggle("roads")} />
         <Toggle label="Cousin graph" checked={layers.cousin} onChange={() => onToggle("cousin")} />
         <Toggle label="Grid" checked={layers.grid} onChange={() => onToggle("grid")} />
+        <Toggle label="Photorealistic 3D" checked={layers.photoreal} onChange={() => onToggle("photoreal")} />
       </div>
     </div>
   );

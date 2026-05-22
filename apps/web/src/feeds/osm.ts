@@ -1,23 +1,38 @@
 import type { RoadPolyline } from "@/types/osm";
-import { BBOX } from "@/lib/region";
 
 /**
- * Fetch highway polylines from Overpass within the PNW bbox. Limited to
- * motorway/trunk/primary so we don't pull every neighborhood street.
+ * Fetch highway polylines from Overpass for an arbitrary bbox.
  *
- * Note: Overpass uses (south, west, north, east) order.
+ * PNW-wide queries time out (Overpass 504s past ~5° tiles), so callers
+ * pass the current viewport. Class set widens as the bbox shrinks so a
+ * city-level view shows arterials and a regional view stays light.
+ *
+ * Overpass uses (south, west, north, east) ordering.
  */
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+// overpass-api.de rejects POSTs from non-browser-shaped clients with 406.
+// kumi.systems is the standard alternative and accepts the same payload.
+const OVERPASS_URL = "https://overpass.kumi.systems/api/interpreter";
 
-function buildQuery(): string {
-  const bbox = `${BBOX.south},${BBOX.west},${BBOX.north},${BBOX.east}`;
-  return `[out:json][timeout:60];
-(
-  way["highway"="motorway"](${bbox});
-  way["highway"="trunk"](${bbox});
-  way["highway"="primary"](${bbox});
-);
-out geom;`;
+export interface BBox {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+}
+
+function buildQuery(bbox: BBox, classes: string[]): string {
+  const b = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
+  const ways = classes.map((c) => `  way["highway"="${c}"](${b});`).join("\n");
+  return `[out:json][timeout:60];\n(\n${ways}\n);\nout geom;`;
+}
+
+/** Pick highway classes by bbox span (deg). Smaller view, more detail. */
+function classesFor(bbox: BBox): string[] {
+  const span = Math.max(bbox.north - bbox.south, bbox.east - bbox.west);
+  if (span > 6) return ["motorway"];
+  if (span > 2) return ["motorway", "trunk"];
+  if (span > 0.6) return ["motorway", "trunk", "primary"];
+  return ["motorway", "trunk", "primary", "secondary"];
 }
 
 interface OverpassWay {
@@ -30,12 +45,13 @@ interface OverpassResponse {
   elements: OverpassWay[];
 }
 
-export async function fetchRoadPolylines(): Promise<RoadPolyline[]> {
+export async function fetchRoadPolylines(bbox: BBox): Promise<RoadPolyline[]> {
+  const classes = classesFor(bbox);
   try {
     const res = await fetch(OVERPASS_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: buildQuery(),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "data=" + encodeURIComponent(buildQuery(bbox, classes)),
     });
     if (!res.ok) {
       console.warn("Overpass error:", res.status);
