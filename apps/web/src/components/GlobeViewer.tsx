@@ -39,9 +39,10 @@ import { StatusBar } from "@/components/hud/StatusBar";
 import { LayerPanel } from "@/components/panels/LayerPanel";
 import type { LayerState } from "@/components/panels/LayerPanel";
 import { FilterPanel } from "@/components/panels/FilterPanel";
-import { CousinPanel } from "@/components/panels/CousinPanel";
+import { SystemDashboard } from "@/components/panels/SystemDashboard";
 import { ScenariosPanel } from "@/components/panels/ScenariosPanel";
 import { BasinDetailPanel } from "@/components/panels/BasinDetailPanel";
+import { TimeControlPanel } from "@/components/panels/TimeControlPanel";
 import { QuakeDetailPanel } from "@/components/panels/QuakeDetailPanel";
 import { ShipDetailPanel } from "@/components/panels/ShipDetailPanel";
 import { FireDetailPanel } from "@/components/panels/FireDetailPanel";
@@ -86,10 +87,12 @@ export function GlobeViewer() {
     roads: false,
     cousin: true,
     photoreal: false,
-    basins: false,
+    basins: true,
   });
   const [basinVar, setBasinVar] = useState<BasinVar>("SST");
   const [selectedBasin, setSelectedBasin] = useState<string | null>(null);
+  const [tickIntervalMs, setTickIntervalMs] = useState(30_000);
+  const [simPaused, setSimPaused] = useState(false);
 
   const { mode: filterMode, setMode: setFilterMode } = useFilterMode();
 
@@ -112,7 +115,8 @@ export function GlobeViewer() {
   // Solid-earth signals (quakes, GNSS) are intentionally NOT fed back — that
   // would violate the two-contract prediction principle (observe-only).
   useSimClock({
-    intervalMs: 30_000,
+    intervalMs: tickIntervalMs,
+    enabled: !simPaused,
     getObservations: () => {
       const obs: SimObservation[] = [];
       // Vessel-density → noise: more underway vessels = more broadband noise.
@@ -372,9 +376,15 @@ export function GlobeViewer() {
           onBasinVarChange={setBasinVar}
         />
         <FilterPanel mode={filterMode} onChange={setFilterMode} />
-        {layers.cousin && <CousinPanel />}
+        {layers.cousin && <SystemDashboard />}
         <ScenariosPanel />
         <BasinDetailPanel basinId={selectedBasin} onClose={() => setSelectedBasin(null)} />
+        <TimeControlPanel
+          intervalMs={tickIntervalMs}
+          onIntervalChange={setTickIntervalMs}
+          paused={simPaused}
+          onPausedChange={setSimPaused}
+        />
 
         <QuakeDetailPanel
           earthquake={selectedQuake}

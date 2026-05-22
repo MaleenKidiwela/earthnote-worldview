@@ -73,6 +73,10 @@ export interface SimModel {
   readonly edges: ReadonlyArray<CausalEdge>;
   readonly scenarios: ReadonlyArray<ScenarioSpec>;
   readonly result: EngineResult | null;
+  /** Number of ticks that have completed since boot. */
+  readonly ticks: number;
+  /** Simulated years elapsed since the t=0 reference (2026). */
+  readonly years: number;
   trace(entityId: string, depth?: number): TraceResult;
   get(entityId: string): EntityWithGeo | undefined;
   /** A 0..1 health value for the entity, or null if not modeled. */
@@ -142,6 +146,12 @@ class SimStore implements SimModel {
 
   get result() {
     return this._result;
+  }
+  get ticks() {
+    return this._ticks;
+  }
+  get years() {
+    return this._yf;
   }
 
   trace(entityId: string, depth = 3): TraceResult {

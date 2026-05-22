@@ -80,7 +80,7 @@ export function LayerPanel({
             </button>
           )}
         </div>
-        <Toggle label="Cousin graph" checked={layers.cousin} onChange={() => onToggle("cousin")} />
+        <Toggle label="Causal graph" checked={layers.cousin} onChange={() => onToggle("cousin")} />
         <Toggle label="Basin health" checked={layers.basins} onChange={() => onToggle("basins")} />
         {layers.basins && (
           <select
