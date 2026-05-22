@@ -101,6 +101,13 @@ export interface SimModel {
   /** Re-warmup the engine and clear ticks/shocks. Drops to t=0. */
   reset(): void;
   /**
+   * "Nowcast" reset. Re-warmup, then run several silent quarters of
+   * assimilation against the provided realtime observations so the
+   * engine starts from today's measured conditions instead of t=0
+   * defaults. Clock is set to the current calendar month.
+   */
+  nowcast(observations: Observation[]): void;
+  /**
    * Switch the persistent parameter set to a named scenario from SCEN
    * (e.g. "green", "collapse", "hood_canal_collapse", "blob_returns").
    * Re-warms up the engine with the new params and queues any
@@ -143,6 +150,10 @@ class SimStore implements SimModel {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _params: any = DEF;
   private _scenarioId = "baseline";
+  // Most recent observation batch fed to tick(). reset / setScenario reuse
+  // these so a fresh world automatically anchors to today's conditions
+  // instead of dropping back to t=0 defaults.
+  private _lastObservations: Observation[] = [];
 
   constructor(opts: CreateSimOptions = {}) {
     this._monthly = opts.monthly ?? true;
@@ -216,6 +227,7 @@ class SimStore implements SimModel {
     const dt = this._monthly ? 1 / 3 : 1;
     try {
       if (observations && observations.length) {
+        this._lastObservations = observations;
         const prepped = prepareObservations(observations);
         assimilateObservations(prepped, this._state, dt);
       }
@@ -249,16 +261,38 @@ class SimStore implements SimModel {
     this._ticks = 0;
     this._params = DEF;
     this._scenarioId = "baseline";
-    try {
-      this._state = boot(this._monthly);
-      this.tick();
-    } catch (err) {
-      console.warn("[sim] reset failed:", err);
-    }
+    // Anchor reset state to current observations so the user sees today's
+    // conditions, not a t=0 baseline.
+    this.nowcast(this._lastObservations);
   }
 
   get scenarioId() {
     return this._scenarioId;
+  }
+
+  nowcast(observations: Observation[]): void {
+    // Pending shocks are preserved — autoTrigger scenarios queue them
+    // before calling nowcast and want them fired on the visible tick.
+    try {
+      // Re-warmup with current params.
+      this._state = warmupState(this._params, this._monthly);
+      // Drive 6 silent ticks of assimilation against the observations to
+      // pull state toward today's conditions (each tick = 1 month, so
+      // 6 months of nudging — fast variables converge, slow ones partial).
+      const prepped = observations.length ? prepareObservations(observations) : [];
+      const dt = this._monthly ? 1 / 3 : 1;
+      for (let i = 0; i < 6; i++) {
+        if (prepped.length) assimilateObservations(prepped, this._state, dt);
+        const r = runOrchestrator(this._params, {}, 0, this._state, dt, 0);
+        this._state = r._state;
+      }
+      // Final tick produces visible result and fires listeners.
+      this._yf = 0;
+      this._ticks = 0;
+      this.tick(observations);
+    } catch (err) {
+      console.warn("[sim] nowcast failed:", err);
+    }
   }
 
   setScenario(id: string): void {
@@ -277,13 +311,10 @@ class SimStore implements SimModel {
         this._pendingShocks[k] = typeof v === "number" ? v : v ? 1 : 0;
       }
     }
-    try {
-      // Warmup with new params so steady-state matches the scenario.
-      this._state = warmupState(this._params, this._monthly);
-      this.tick();
-    } catch (err) {
-      console.warn("[sim] setScenario failed:", err);
-    }
+    // Warmup under the scenario params, then nudge state to current
+    // observations so the scenario starts from today's measured world
+    // (SST, river flow, vessel noise, etc.) instead of t=0 defaults.
+    this.nowcast(this._lastObservations);
   }
 }
 

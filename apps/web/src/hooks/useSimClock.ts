@@ -73,5 +73,11 @@ export function useSimClock(opts: UseSimClockOptions = {}) {
     };
   }, [intervalMs, getObservations, enabled]);
 
-  return { sim, result, liveObservations: liveObsRef.current };
+  return {
+    sim,
+    result,
+    liveObservations: liveObsRef.current,
+    /** Re-warmup + nudge state to current realtime observations. */
+    nowcast: () => sim.nowcast(liveObsRef.current),
+  };
 }
