@@ -17,6 +17,7 @@ import { useSimClock } from "@/hooks/useSimClock";
 import type { Observation as SimObservation } from "@pnw/sim";
 import { BasinHealthLayer } from "@/layers/BasinHealthLayer";
 import { LiveStationsLayer } from "@/layers/LiveStationsLayer";
+import { RiverFlowLayer } from "@/layers/RiverFlowLayer";
 import type { BasinVar } from "@/components/panels/LayerPanel";
 import { sim } from "@/sim-stub";
 import { useFireData } from "@/hooks/useFireData";
@@ -90,6 +91,7 @@ export function GlobeViewer() {
     photoreal: false,
     basins: false,
     stations: true,
+    rivers: true,
   });
   const [basinVar, setBasinVar] = useState<BasinVar>("SST");
   const [selectedBasin, setSelectedBasin] = useState<string | null>(null);
@@ -358,6 +360,7 @@ export function GlobeViewer() {
         <BasinHealthLayer viewer={viewer} variable={basinVar} tick={sim.result} />
       )}
       {layers.stations && <LiveStationsLayer viewer={viewer} tick={sim.result} />}
+      {layers.rivers && <RiverFlowLayer viewer={viewer} tick={sim.result} />}
       {layers.cousin && (
         <CousinOverlay viewer={viewer} selectedEntityId={selectedEntityId} />
       )}

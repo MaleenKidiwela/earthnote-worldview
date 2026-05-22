@@ -25,7 +25,7 @@ export interface UseSimClockOptions {
   enabled?: boolean;
 }
 
-const FEED_REFRESH_MS = 300_000; // 5 min — NOAA + USGS are courtesy-rate-limited
+const FEED_REFRESH_MS = 900_000; // 15 min — USGS IV updates ~15 min anyway
 
 export function useSimClock(opts: UseSimClockOptions = {}) {
   const { intervalMs = 30_000, getObservations, enabled = true } = opts;

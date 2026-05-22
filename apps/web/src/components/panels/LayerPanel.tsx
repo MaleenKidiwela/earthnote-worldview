@@ -18,6 +18,8 @@ export interface LayerState {
   basins: boolean;
   /** Realtime observation stations (NOAA SST + USGS streamflow). */
   stations: boolean;
+  /** NHDPlus rivers colored by gauge discharge, propagated downstream. */
+  rivers: boolean;
 }
 
 export type BasinVar = "SST" | "DO" | "pH" | "noise" | "omega" | "wqi";
@@ -150,6 +152,7 @@ export function LayerPanel({
         <Toggle label="Grid" checked={layers.grid} onChange={() => onToggle("grid")} />
         <Toggle label="Photorealistic 3D" checked={layers.photoreal} onChange={() => onToggle("photoreal")} />
         <Toggle label="Live obs stations" checked={layers.stations} onChange={() => onToggle("stations")} />
+        <Toggle label="Rivers (discharge)" checked={layers.rivers} onChange={() => onToggle("rivers")} />
       </div>
     </div>
   );

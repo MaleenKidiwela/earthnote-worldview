@@ -11,7 +11,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "dev": "pnpm --filter web dev",
-    "roads:build": "node scripts/build-roads.mjs"
+    "roads:build": "node scripts/build-roads.mjs",
+    "rivers:build": "node scripts/build-rivers.mjs"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
