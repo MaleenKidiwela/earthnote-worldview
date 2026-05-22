@@ -1,0 +1,24 @@
+node_modules
+dist
+build
+.cache
+.turbo
+.wrangler
+.dev.vars
+.env
+.env.local
+*.log
+.DS_Store
+coverage
+.pytest_cache
+__pycache__
+*.pyc
+.venv
+venv
+.vscode
+.idea
+.ipynb_checkpoints
+
+# Reference material kept local only (Cousin bundle, source notes).
+references/
+
