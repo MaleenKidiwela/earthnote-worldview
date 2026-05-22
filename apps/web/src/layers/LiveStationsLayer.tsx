@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Cartesian3,
   Cartesian2,
@@ -10,7 +10,7 @@ import {
 } from "cesium";
 import { NOAA_STATIONS, NOAA_LATEST } from "@/feeds/noaa-tides";
 import { USGS_SITES, USGS_LATEST } from "@/feeds/usgs-streamflow";
-import { dischargeColor as scaledDischargeColor } from "@/lib/dischargeScale";
+import { dischargeColor as scaledDischargeColor, subscribeScale } from "@/lib/dischargeScale";
 
 interface Props {
   viewer: Viewer | null;
@@ -26,6 +26,10 @@ interface Props {
  * is being nudged.
  */
 export function LiveStationsLayer({ viewer, tick }: Props) {
+  // Force re-render when the user moves the discharge-scale slider.
+  const [, setScaleKey] = useState(0);
+  useEffect(() => subscribeScale(() => setScaleKey((k) => k + 1)), []);
+
   useEffect(() => {
     if (!viewer || viewer.isDestroyed()) return;
     void tick;

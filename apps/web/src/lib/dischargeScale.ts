@@ -16,17 +16,35 @@ export interface DischargeRange {
   log: boolean;
 }
 
+// User-pinned max (red) override. null → auto from live data.
+let userMaxOverride: number | null = null;
+const listeners = new Set<() => void>();
+
+export function setMaxOverride(v: number | null) {
+  userMaxOverride = v;
+  for (const fn of listeners) fn();
+}
+export function getMaxOverride() {
+  return userMaxOverride;
+}
+export function subscribeScale(fn: () => void) {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
 export function currentRange(): DischargeRange {
   let min = Infinity;
-  let max = -Infinity;
+  let liveMax = -Infinity;
   for (const v of USGS_LATEST.values()) {
     if (v < min) min = v;
-    if (v > max) max = v;
+    if (v > liveMax) liveMax = v;
   }
-  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
-    return { min: 0.1, max: 1000, log: true };
+  if (!Number.isFinite(min) || !Number.isFinite(liveMax) || liveMax <= min) {
+    return { min: 0.1, max: userMaxOverride ?? 1000, log: true };
   }
-  // Span huge → log; span small → linear so subtle differences read.
+  const max = userMaxOverride ?? liveMax;
   return { min, max, log: max / Math.max(min, 0.01) > 50 };
 }
 

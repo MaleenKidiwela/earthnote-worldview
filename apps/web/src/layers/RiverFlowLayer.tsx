@@ -9,7 +9,7 @@ import {
 } from "cesium";
 import { fetchRiverBundle, type Flowline, type RiverBundle } from "@/feeds/rivers-bundle";
 import { USGS_LATEST, USGS_SITES } from "@/feeds/usgs-streamflow";
-import { dischargeColor as scaledDischargeColor } from "@/lib/dischargeScale";
+import { dischargeColor as scaledDischargeColor, subscribeScale } from "@/lib/dischargeScale";
 
 interface Props {
   viewer: Viewer | null;
@@ -84,6 +84,8 @@ export function RiverFlowLayer({ viewer, tick }: Props) {
     const remove = viewer.camera.moveEnd.addEventListener(fn);
     return remove;
   }, [viewer]);
+  // Bump again when the discharge-scale slider changes.
+  useEffect(() => subscribeScale(() => setViewKey((k) => k + 1)), []);
 
   useEffect(() => {
     if (!viewer || viewer.isDestroyed() || !bundle || !topologyRef.current) return;

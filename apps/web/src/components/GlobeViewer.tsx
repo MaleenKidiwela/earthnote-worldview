@@ -18,6 +18,7 @@ import type { Observation as SimObservation } from "@pnw/sim";
 import { BasinHealthLayer } from "@/layers/BasinHealthLayer";
 import { LiveStationsLayer } from "@/layers/LiveStationsLayer";
 import { RiverFlowLayer } from "@/layers/RiverFlowLayer";
+import { DischargeScalePanel } from "@/components/panels/DischargeScalePanel";
 import type { BasinVar } from "@/components/panels/LayerPanel";
 import { sim } from "@/sim-stub";
 import { useFireData } from "@/hooks/useFireData";
@@ -361,6 +362,7 @@ export function GlobeViewer() {
       )}
       {layers.stations && <LiveStationsLayer viewer={viewer} tick={sim.result} />}
       {layers.rivers && <RiverFlowLayer viewer={viewer} tick={sim.result} />}
+      {(layers.rivers || layers.stations) && <DischargeScalePanel />}
       {layers.cousin && (
         <CousinOverlay viewer={viewer} selectedEntityId={selectedEntityId} />
       )}
