@@ -16,6 +16,8 @@ export interface LayerState {
   photoreal: boolean;
   /** Engine-driven sub-basin health polygons (Salish Sea). */
   basins: boolean;
+  /** Realtime observation stations (NOAA SST + USGS streamflow). */
+  stations: boolean;
 }
 
 export type BasinVar = "SST" | "DO" | "pH" | "noise" | "omega" | "wqi";
@@ -147,6 +149,7 @@ export function LayerPanel({
         )}
         <Toggle label="Grid" checked={layers.grid} onChange={() => onToggle("grid")} />
         <Toggle label="Photorealistic 3D" checked={layers.photoreal} onChange={() => onToggle("photoreal")} />
+        <Toggle label="Live obs stations" checked={layers.stations} onChange={() => onToggle("stations")} />
       </div>
     </div>
   );

@@ -11,22 +11,27 @@ interface Site {
   id: string;
   name: string;
   basin: string;
+  lon: number;
+  lat: number;
 }
 
-const SITES: Site[] = [
-  { id: "12200500", name: "Skagit nr Mt Vernon", basin: "whidbey" },
-  { id: "12189500", name: "Sauk nr Sauk", basin: "whidbey" },
-  { id: "12134500", name: "Snoqualmie nr Carnation", basin: "mainBasin" },
-  { id: "12150800", name: "Snohomish nr Monroe", basin: "whidbey" },
-  { id: "12054000", name: "Duckabush nr Brinnon", basin: "hoodCanal" },
-  { id: "12039500", name: "Quinault at Quinault", basin: "juanDeFuca" },
+export const USGS_SITES: Site[] = [
+  { id: "12200500", name: "Skagit nr Mt Vernon", basin: "whidbey", lon: -122.336, lat: 48.445 },
+  { id: "12189500", name: "Sauk nr Sauk", basin: "whidbey", lon: -121.567, lat: 48.426 },
+  { id: "12134500", name: "Snoqualmie nr Carnation", basin: "mainBasin", lon: -121.926, lat: 47.665 },
+  { id: "12150800", name: "Snohomish nr Monroe", basin: "whidbey", lon: -121.972, lat: 47.829 },
+  { id: "12054000", name: "Duckabush nr Brinnon", basin: "hoodCanal", lon: -123.012, lat: 47.682 },
+  { id: "12039500", name: "Quinault at Quinault", basin: "juanDeFuca", lon: -123.860, lat: 47.460 },
 ];
+
+/** Last observed discharge per site id (m³/s). Updated by fetchDischargeObservations. */
+export const USGS_LATEST = new Map<string, number>();
 
 const CFS_TO_CMS = 0.0283168;
 
 export async function fetchDischargeObservations(): Promise<Observation[]> {
   const out: Observation[] = [];
-  const sites = SITES.map((s) => s.id).join(",");
+  const sites = USGS_SITES.map((s) => s.id).join(",");
   try {
     const url =
       "https://waterservices.usgs.gov/nwis/iv/" +
@@ -42,13 +47,15 @@ export async function fetchDischargeObservations(): Promise<Observation[]> {
       const siteCode = ts.sourceInfo?.siteCode?.[0]?.value as string | undefined;
       const latest = ts.values?.[0]?.value?.[0]?.value as string | undefined;
       if (!siteCode || !latest) continue;
-      const meta = SITES.find((x) => x.id === siteCode);
+      const meta = USGS_SITES.find((x) => x.id === siteCode);
       if (!meta) continue;
       const v = Number(latest);
       if (!Number.isFinite(v) || v < 0) continue;
+      const cms = v * CFS_TO_CMS;
+      USGS_LATEST.set(meta.id, cms);
       out.push({
         variable: "discharge",
-        value: v * CFS_TO_CMS,
+        value: cms,
         basin: meta.basin,
         station: meta.id,
       });
