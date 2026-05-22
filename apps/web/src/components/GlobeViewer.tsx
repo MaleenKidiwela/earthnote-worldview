@@ -15,6 +15,9 @@ import { useEarthquakeData } from "@/hooks/useEarthquakeData";
 import { useAISData } from "@/hooks/useAISData";
 import { useSimClock } from "@/hooks/useSimClock";
 import type { Observation as SimObservation } from "@pnw/sim";
+import { BasinHealthLayer } from "@/layers/BasinHealthLayer";
+import type { BasinVar } from "@/components/panels/LayerPanel";
+import { sim } from "@/sim-stub";
 import { useFireData } from "@/hooks/useFireData";
 import { useWeatherData } from "@/hooks/useWeatherData";
 import { useGnssData } from "@/hooks/useGnssData";
@@ -36,6 +39,8 @@ import { StatusBar } from "@/components/hud/StatusBar";
 import { LayerPanel } from "@/components/panels/LayerPanel";
 import type { LayerState } from "@/components/panels/LayerPanel";
 import { FilterPanel } from "@/components/panels/FilterPanel";
+import { CousinPanel } from "@/components/panels/CousinPanel";
+import { CousinDrawer } from "@/components/panels/CousinDrawer";
 import { QuakeDetailPanel } from "@/components/panels/QuakeDetailPanel";
 import { ShipDetailPanel } from "@/components/panels/ShipDetailPanel";
 import { FireDetailPanel } from "@/components/panels/FireDetailPanel";
@@ -80,7 +85,9 @@ export function GlobeViewer() {
     roads: false,
     cousin: true,
     photoreal: false,
+    basins: false,
   });
+  const [basinVar, setBasinVar] = useState<BasinVar>("SST");
 
   const { mode: filterMode, setMode: setFilterMode } = useFilterMode();
 
@@ -337,6 +344,9 @@ export function GlobeViewer() {
       )}
       {layers.gnss && <GnssLayer stations={gnssData.stations} viewer={viewer} />}
       {layers.roads && <RoadParticleLayer roads={roadData.roads} viewer={viewer} />}
+      {layers.basins && (
+        <BasinHealthLayer viewer={viewer} variable={basinVar} tick={sim.result} />
+      )}
       {layers.cousin && (
         <CousinOverlay viewer={viewer} selectedEntityId={selectedEntityId} />
       )}
@@ -354,8 +364,12 @@ export function GlobeViewer() {
           onToggle={toggleLayer}
           onRefreshRoads={roadData.refresh}
           roadsLoading={roadData.loading}
+          basinVar={basinVar}
+          onBasinVarChange={setBasinVar}
         />
         <FilterPanel mode={filterMode} onChange={setFilterMode} />
+        {layers.cousin && <CousinPanel />}
+        <CousinDrawer />
 
         <QuakeDetailPanel
           earthquake={selectedQuake}

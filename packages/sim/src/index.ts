@@ -28,6 +28,10 @@ import { DEF } from "./config/defaults.js";
 
 export { ENTITIES, EDGES, SCENARIOS } from "./taxonomy.js";
 export type { EntityWithGeo, ScenarioSpec } from "./taxonomy.js";
+// Sub-basin geometry + parent-basin mapping. These power the
+// BasinHealthLayer that paints engine state directly onto the map.
+export { SUB_BASIN_WATER_POLYGONS } from "./geo/subBasinPolygonsGenerated.js";
+export { SUB_BASINS, PARENT_BASINS, BASIN_NAMES } from "./engine/basins.js";
 export {
   runOrchestrator,
   warmupState,

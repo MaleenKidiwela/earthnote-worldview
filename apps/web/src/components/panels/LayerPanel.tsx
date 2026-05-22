@@ -14,18 +14,42 @@ export interface LayerState {
   cousin: boolean;
   /** Google Photorealistic 3D Tiles. Off → flat dark road basemap. */
   photoreal: boolean;
+  /** Engine-driven sub-basin health polygons (Salish Sea). */
+  basins: boolean;
 }
+
+export type BasinVar = "SST" | "DO" | "pH" | "noise" | "omega" | "wqi";
 
 interface LayerPanelProps {
   layers: LayerState;
   onToggle: (layer: keyof LayerState) => void;
   onRefreshRoads?: () => void;
   roadsLoading?: boolean;
+  basinVar: BasinVar;
+  onBasinVarChange: (v: BasinVar) => void;
 }
 
-export function LayerPanel({ layers, onToggle, onRefreshRoads, roadsLoading }: LayerPanelProps) {
+export function LayerPanel({
+  layers,
+  onToggle,
+  onRefreshRoads,
+  roadsLoading,
+  basinVar,
+  onBasinVarChange,
+}: LayerPanelProps) {
   return (
-    <div className="panel" style={{ position: "absolute", top: 48, right: 16, width: 180 }}>
+    <div
+      className="panel"
+      style={{
+        position: "absolute",
+        top: 48,
+        right: 16,
+        width: 180,
+        // Keep every toggle reachable even when other UI stacks tall.
+        maxHeight: "calc(100vh - 80px)",
+        overflowY: "auto",
+      }}
+    >
       <div className="panel-title">Layers</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <Toggle label="Earthquakes" checked={layers.earthquakes} onChange={() => onToggle("earthquakes")} />
@@ -57,6 +81,30 @@ export function LayerPanel({ layers, onToggle, onRefreshRoads, roadsLoading }: L
           )}
         </div>
         <Toggle label="Cousin graph" checked={layers.cousin} onChange={() => onToggle("cousin")} />
+        <Toggle label="Basin health" checked={layers.basins} onChange={() => onToggle("basins")} />
+        {layers.basins && (
+          <select
+            value={basinVar}
+            onChange={(e) => onBasinVarChange(e.target.value as BasinVar)}
+            style={{
+              marginLeft: 20,
+              background: "#1a1f2e",
+              color: "#cbd5e0",
+              border: "1px solid #4a5568",
+              borderRadius: 3,
+              padding: "2px 6px",
+              fontSize: 11,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          >
+            <option value="SST">SST (°C)</option>
+            <option value="DO">Dissolved O₂</option>
+            <option value="pH">pH</option>
+            <option value="omega">Aragonite Ω</option>
+            <option value="noise">Underwater noise</option>
+            <option value="wqi">Water quality idx</option>
+          </select>
+        )}
         <Toggle label="Grid" checked={layers.grid} onChange={() => onToggle("grid")} />
         <Toggle label="Photorealistic 3D" checked={layers.photoreal} onChange={() => onToggle("photoreal")} />
       </div>
