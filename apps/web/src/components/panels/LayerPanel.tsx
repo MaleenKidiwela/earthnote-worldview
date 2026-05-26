@@ -62,6 +62,7 @@ export function LayerPanel({
       <div className="panel-title">Layers</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <Toggle label="Earthquakes" checked={layers.earthquakes} onChange={() => onToggle("earthquakes")} />
+        <Toggle label="Tremor (PNSN)" checked={layers.tremor} onChange={() => onToggle("tremor")} />
         <Toggle label="Ships (AIS)" checked={layers.ships} onChange={() => onToggle("ships")} />
         <Toggle label="Fires" checked={layers.fires} onChange={() => onToggle("fires")} />
         <Toggle label="Weather" checked={layers.weather} onChange={() => onToggle("weather")} />
@@ -155,7 +156,6 @@ export function LayerPanel({
         <Toggle label="Photorealistic 3D" checked={layers.photoreal} onChange={() => onToggle("photoreal")} />
         <Toggle label="Live obs stations" checked={layers.stations} onChange={() => onToggle("stations")} />
         <Toggle label="Rivers (discharge)" checked={layers.rivers} onChange={() => onToggle("rivers")} />
-        <Toggle label="Tremor (PNSN, observed)" checked={layers.tremor} onChange={() => onToggle("tremor")} />
       </div>
     </div>
   );
