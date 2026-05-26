@@ -36,7 +36,10 @@ export function TremorLayer({ viewer, events }: Props) {
       const px = Math.max(2.5, Math.min(7, 3 + e.magnitude * 1.6));
       viewer.entities.add({
         id,
-        position: Cartesian3.fromDegrees(e.lon, e.lat, -e.depth * 1000),
+        // Plot at surface (not actual subduction depth) because the opaque
+        // globe sphere hides anything at negative altitude. Depth value is
+        // still shown in the click popup.
+        position: Cartesian3.fromDegrees(e.lon, e.lat, 200),
         point: {
           pixelSize: px,
           color,
