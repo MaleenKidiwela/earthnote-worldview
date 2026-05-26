@@ -67,7 +67,8 @@ function flowCss(r: FlowReading): string {
   return `rgb(${R},${G},${B})`;
 }
 function flowLabel(r: FlowReading): string {
-  return ["Unknown", "WideOpen", "Moderate", "Heavy", "StopAndGo", "NoData"][r];
+  const labels = ["Unknown", "WideOpen", "Moderate", "Heavy", "StopAndGo", "NoData"];
+  return labels[r] ?? "Unknown";
 }
 function escape(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
