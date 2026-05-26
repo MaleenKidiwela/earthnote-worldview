@@ -113,7 +113,10 @@ export function GlobeViewer() {
   const fireData = useFireData(true);
   const weatherData = useWeatherData(true);
   const gnssData = useGnssData(true);
-  const roadData = useRoadData(layers.roads, viewer);
+  // Load the static road bundle whenever EITHER the cosmetic Road
+  // particles or the live Traffic layer is on (the latter needs road
+  // geometry to snap WSDOT stations onto).
+  const roadData = useRoadData(layers.roads || layers.traffic, viewer);
   const tremorData = useTremorData(layers.tremor, 30);
   const trafficData = useTrafficData(layers.traffic);
 
