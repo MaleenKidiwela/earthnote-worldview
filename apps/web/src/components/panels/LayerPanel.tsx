@@ -48,15 +48,18 @@ export function LayerPanel({
 }: LayerPanelProps) {
   return (
     <div
-      className="panel"
+      className="panel layer-panel-scroll"
       style={{
         position: "absolute",
         top: 48,
         right: 16,
         width: 180,
-        // Keep every toggle reachable even when other UI stacks tall.
-        maxHeight: "calc(100vh - 80px)",
+        // Hard cap so it's always scrollable even on a 600 px viewport.
+        maxHeight: 360,
         overflowY: "auto",
+        overflowX: "hidden",
+        scrollbarWidth: "thin",
+        scrollbarColor: "#4a5568 #1a1f2e",
       }}
     >
       <div className="panel-title">Layers</div>
