@@ -21,6 +21,7 @@ import { RiverFlowLayer } from "@/layers/RiverFlowLayer";
 import { TremorLayer } from "@/layers/TremorLayer";
 import { useTremorData } from "@/hooks/useTremorData";
 import { TrafficLayer } from "@/layers/TrafficLayer";
+import { TrafficParticleLayer } from "@/layers/TrafficParticleLayer";
 import { useTrafficData } from "@/hooks/useTrafficData";
 import { DischargeScalePanel } from "@/components/panels/DischargeScalePanel";
 import type { BasinVar } from "@/components/panels/LayerPanel";
@@ -371,7 +372,16 @@ export function GlobeViewer() {
       {layers.stations && <LiveStationsLayer viewer={viewer} tick={sim.result} />}
       {layers.rivers && <RiverFlowLayer viewer={viewer} tick={sim.result} />}
       {layers.tremor && <TremorLayer viewer={viewer} events={tremorData.events} />}
-      {layers.traffic && <TrafficLayer viewer={viewer} stations={trafficData.stations} />}
+      {layers.traffic && (
+        <>
+          <TrafficLayer viewer={viewer} stations={trafficData.stations} />
+          <TrafficParticleLayer
+            viewer={viewer}
+            stations={trafficData.stations}
+            roads={roadData.roads}
+          />
+        </>
+      )}
       {(layers.rivers || layers.stations) && <DischargeScalePanel />}
       {layers.cousin && (
         <CousinOverlay viewer={viewer} selectedEntityId={selectedEntityId} />
