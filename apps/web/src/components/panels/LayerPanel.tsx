@@ -20,6 +20,8 @@ export interface LayerState {
   stations: boolean;
   /** NHDPlus rivers colored by gauge discharge, propagated downstream. */
   rivers: boolean;
+  /** PNSN Cascadia tremor catalog (observed deep tremor). */
+  tremor: boolean;
 }
 
 export type BasinVar = "SST" | "DO" | "pH" | "noise" | "omega" | "wqi";
@@ -153,6 +155,7 @@ export function LayerPanel({
         <Toggle label="Photorealistic 3D" checked={layers.photoreal} onChange={() => onToggle("photoreal")} />
         <Toggle label="Live obs stations" checked={layers.stations} onChange={() => onToggle("stations")} />
         <Toggle label="Rivers (discharge)" checked={layers.rivers} onChange={() => onToggle("rivers")} />
+        <Toggle label="Tremor (PNSN, observed)" checked={layers.tremor} onChange={() => onToggle("tremor")} />
       </div>
     </div>
   );

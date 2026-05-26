@@ -18,6 +18,8 @@ import type { Observation as SimObservation } from "@pnw/sim";
 import { BasinHealthLayer } from "@/layers/BasinHealthLayer";
 import { LiveStationsLayer } from "@/layers/LiveStationsLayer";
 import { RiverFlowLayer } from "@/layers/RiverFlowLayer";
+import { TremorLayer } from "@/layers/TremorLayer";
+import { useTremorData } from "@/hooks/useTremorData";
 import { DischargeScalePanel } from "@/components/panels/DischargeScalePanel";
 import type { BasinVar } from "@/components/panels/LayerPanel";
 import { sim } from "@/sim-stub";
@@ -93,6 +95,7 @@ export function GlobeViewer() {
     basins: false,
     stations: true,
     rivers: true,
+    tremor: false,
   });
   const [basinVar, setBasinVar] = useState<BasinVar>("SST");
   const [selectedBasin, setSelectedBasin] = useState<string | null>(null);
@@ -107,6 +110,7 @@ export function GlobeViewer() {
   const weatherData = useWeatherData(true);
   const gnssData = useGnssData(true);
   const roadData = useRoadData(layers.roads, viewer);
+  const tremorData = useTremorData(layers.tremor, 30);
 
   const { alerts, dismiss: dismissAlert } = useAlerts({
     earthquakes: quakeData.earthquakes,
@@ -362,6 +366,7 @@ export function GlobeViewer() {
       )}
       {layers.stations && <LiveStationsLayer viewer={viewer} tick={sim.result} />}
       {layers.rivers && <RiverFlowLayer viewer={viewer} tick={sim.result} />}
+      {layers.tremor && <TremorLayer viewer={viewer} events={tremorData.events} />}
       {(layers.rivers || layers.stations) && <DischargeScalePanel />}
       {layers.cousin && (
         <CousinOverlay viewer={viewer} selectedEntityId={selectedEntityId} />
