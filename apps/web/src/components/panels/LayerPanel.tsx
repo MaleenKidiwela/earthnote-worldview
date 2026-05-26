@@ -22,6 +22,8 @@ export interface LayerState {
   rivers: boolean;
   /** PNSN Cascadia tremor catalog (observed deep tremor). */
   tremor: boolean;
+  /** WSDOT live traffic flow sensors (separate from cosmetic Road particles). */
+  traffic: boolean;
 }
 
 export type BasinVar = "SST" | "DO" | "pH" | "noise" | "omega" | "wqi";
@@ -72,7 +74,7 @@ export function LayerPanel({
         <Toggle label="GNSS (deformation)" checked={layers.gnss} onChange={() => onToggle("gnss")} />
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Toggle label="Roads (particles)" checked={layers.roads} onChange={() => onToggle("roads")} />
+            <Toggle label="Roads (cosmetic)" checked={layers.roads} onChange={() => onToggle("roads")} />
             {layers.roads && onRefreshRoads && (
               <button
                 onClick={onRefreshRoads}
@@ -159,6 +161,7 @@ export function LayerPanel({
         <Toggle label="Photorealistic 3D" checked={layers.photoreal} onChange={() => onToggle("photoreal")} />
         <Toggle label="Live obs stations" checked={layers.stations} onChange={() => onToggle("stations")} />
         <Toggle label="Rivers (discharge)" checked={layers.rivers} onChange={() => onToggle("rivers")} />
+        <Toggle label="Traffic (WSDOT live)" checked={layers.traffic} onChange={() => onToggle("traffic")} />
       </div>
     </div>
   );
