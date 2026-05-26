@@ -118,6 +118,13 @@ export default defineConfig({
         rewrite: (path) =>
           path.replace(/^\/api\/quakes-fdsn/, "/fdsnws/event/1/query"),
       },
+      // WSDOT Traveler Info — server returns 200 but no CORS headers,
+      // so the browser blocks reads. Proxy via Vite.
+      "/api/wsdot": {
+        target: "https://wsdot.wa.gov",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/wsdot/, "/Traffic/api"),
+      },
       "/api/fires": {
         target: "https://firms.modaps.eosdis.nasa.gov",
         changeOrigin: true,

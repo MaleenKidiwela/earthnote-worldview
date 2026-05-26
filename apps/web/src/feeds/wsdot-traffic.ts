@@ -25,8 +25,9 @@ export interface FlowStation {
 }
 
 const KEY = (import.meta.env.VITE_WSDOT_API_KEY as string | undefined) ?? "";
+// Routed through Vite dev proxy because WSDOT doesn't send CORS headers.
 const URL_BASE =
-  "https://wsdot.wa.gov/Traffic/api/TrafficFlow/TrafficFlowREST.svc/GetTrafficFlowsAsJson";
+  `${import.meta.env.BASE_URL}api/wsdot/TrafficFlow/TrafficFlowREST.svc/GetTrafficFlowsAsJson`;
 
 export async function fetchTrafficFlows(): Promise<FlowStation[]> {
   if (!KEY) {
